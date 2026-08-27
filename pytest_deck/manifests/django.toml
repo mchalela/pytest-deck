@@ -1,0 +1,32 @@
+# Curated manifest: pytest-django.
+# id is the plugin's pytest11 entry-point name, exactly the token `-p` loads
+# under PYTEST_DISABLE_PLUGIN_AUTOLOAD. The dist name is display metadata only.
+id = "django"
+label = "Django (pytest-django)"
+dist = "pytest-django"
+# Model-importing suites break collect without it (ImproperlyConfigured, exit
+# 2), and its ini `DJANGO_SETTINGS_MODULE` is the unknown-ini collect-fatal
+# class under a user `filterwarnings = error` (honored, P15). A bare `-p django`
+# on a non-django suite is verified harmless (green, exit 0), hence
+# scope="both" with no guard and no disabled_reason.
+scope = "both"
+
+# Pure switch: zero fields, no transport, no env. DJANGO_SETTINGS_MODULE flows
+# in via ini (P15-honored) or inherited env, and `--ds` stays extra-args (a
+# typed override field is a footgun with marginal interactive value).
+
+# Flags namespace: pytest-django's CLI surface enumerated as literals (verified
+# on 4.14.0); there is no shared prefix, so no wildcard. An ini `--ds=...` is the
+# user's own terminal behavior, so re-admitting it while the switch is on is
+# fidelity, not the typed-field footgun avoided above.
+flags = [
+    "--reuse-db",
+    "--create-db",
+    "--ds",
+    "--dc",
+    "--nomigrations",
+    "--no-migrations",
+    "--migrations",
+    "--liveserver",
+    "--fail-on-template-vars",
+]

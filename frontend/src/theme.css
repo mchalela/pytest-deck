@@ -1,0 +1,81 @@
+/* Global theme — ported verbatim from the prototype's :root palette and the
+   handful of element-level rules (body/header/button). Component-specific styles
+   live in each .svelte file's scoped <style>. */
+:root {
+  --bg: #0f1419;
+  --panel: #1a212b;
+  --line: #2a3441;
+  --fg: #d7dde5;
+  --muted: #7a8696;
+  --accent: #4ea1ff;
+  --chip: #243044;
+  --chip-on: #2d5a8a;
+  --group: #c08be0;
+  --indent: 16px;
+
+  /* Shared status palette — single source of truth for the status colours used
+     by StatusBadge (fg + bg pill) and DetailPane (outcome header fg). Keep the
+     -fg / -bg pairs in sync; consumers reference these via var(--st-...). */
+  --st-passed-fg: #5fd38a;
+  --st-passed-bg: #14361f;
+  --st-failed-fg: #ff7a93;
+  --st-failed-bg: #3a1620;
+  --st-error-fg: #ffb454;
+  --st-error-bg: #3a2810;
+  --st-skipped-fg: #8fb4e0;
+  --st-skipped-bg: #1f2a3a;
+  --st-xfailed-fg: #b79cf0;
+  --st-xfailed-bg: #2a2440;
+  --st-xpassed-fg: #d9b3ff;
+  --st-xpassed-bg: #2a2440;
+  --st-incomplete-fg: #ffb454;
+  --st-incomplete-bg: #3a2810;
+  --st-missing-fg: #9a9a9a;
+  --st-missing-bg: #2a2a2a;
+  --st-running-fg: var(--muted);
+  --st-running-bg: var(--chip);
+  /* server-down: an INFRA problem, not a test outcome — deliberately off-palette
+     (magenta) so it reads as "something's wrong with the connection", not a fail. */
+  --st-serverdown-fg: #ff8ad4;
+  --st-serverdown-bg: #3a1630;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font:
+    13px/1.4 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  background: var(--chip);
+  color: var(--fg);
+  padding: 6px 14px;
+  border-radius: 6px;
+}
+button:hover {
+  border-color: var(--accent);
+}
+button.primary {
+  background: var(--chip-on);
+  border-color: var(--accent);
+}
+button.mini {
+  padding: 2px 8px;
+  font-size: 11px;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

@@ -1,0 +1,43 @@
+# Curated manifest: pytest-cov.
+# id is the plugin's pytest11 entry-point name, exactly the token `-p` loads
+# under PYTEST_DISABLE_PLUGIN_AUTOLOAD. The dist name is display metadata only.
+id = "pytest_cov"
+label = "Coverage (pytest-cov)"
+dist = "pytest-cov"
+scope = "run"
+
+# Flags namespace: pytest-cov's whole CLI surface (verified on 7.1.0: --cov,
+# --cov-*, --no-cov and --no-cov-on-fail is exhaustive). Self-contained ini
+# addopts tokens in this namespace are re-admitted at run time while the switch
+# is on.
+flags = ["--cov", "--cov-*", "--no-cov", "--no-cov-on-fail"]
+
+# Keep the data file out of the user's tree: coverage's default .coverage lands
+# in the child cwd; COVERAGE_FILE overrides even a user coveragerc. The runner
+# reads it from the run tmpdir.
+[env]
+COVERAGE_FILE = "{tmpdir}/.coverage"
+
+# Post-run JSON transport: pytest-cov writes the report into the run
+# tmpdir; the runner slims it onto the `plugin_data` SSE event after exit.
+# The raw file stays there for the source gutter.
+[transport]
+type = "json_file"
+arg = "--cov-report=json:{tmpdir}/cov.json"
+path = "{tmpdir}/cov.json"
+
+[[fields]]
+key = "source"
+label = "Source (--cov=)"
+type = "string"
+default = ""
+arg = "--cov={value}"
+# An empty source means bare --cov: pytest-cov's measure-everything default.
+arg_empty = "--cov"
+
+[[fields]]
+key = "branch"
+label = "Branch coverage"
+type = "bool"
+default = false
+arg = "--cov-branch"

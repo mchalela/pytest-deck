@@ -1,0 +1,13 @@
+/* Keep inline code (CLI flags like --host) from wrapping mid-token, so narrow
+   table cells don't split a flag across two lines. */
+td code,
+th code {
+  white-space: nowrap;
+}
+
+/* Give table cells a little breathing room and let the description column take
+   the slack rather than squeezing the first columns. */
+table.docutils td,
+table.docutils th {
+  padding: 0.4rem 0.75rem;
+}

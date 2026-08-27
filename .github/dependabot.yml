@@ -1,0 +1,25 @@
+# Keep the version boundaries from rotting silently. This project's pins were
+# once set from whatever the dev machine had and drifted stale with no diff to
+# trigger a second look; Dependabot watches every ecosystem the repo pins.
+version: 2
+updates:
+  # Frontend toolchain (Vite, Svelte, eslint, prettier): the largest surface.
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+    groups:
+      npm-minor-and-patch:
+        update-types: ["minor", "patch"]
+
+  # Python runtime deps + extras in pyproject.toml.
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  # Pinned action versions in .github/workflows (setup-python, setup-node, ...).
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

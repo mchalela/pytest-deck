@@ -1,0 +1,20 @@
+# Curated manifest: pytest-asyncio.
+# id is the plugin's pytest11 entry-point name, exactly the token `-p` loads
+# under PYTEST_DISABLE_PLUGIN_AUTOLOAD. The dist name is display metadata only.
+id = "asyncio"
+label = "Async tests (pytest-asyncio)"
+dist = "pytest-asyncio"
+# Collect diverges without it (verified): an unknown `@pytest.mark.asyncio`
+# under a user `filterwarnings = error` (honored, P15) is collect-fatal, and
+# its own ini keys (`asyncio_mode`, `asyncio_default_fixture_loop_scope`) are
+# the same unknown-ini class. Both vanish with `-p asyncio` on collect, hence
+# scope="both". At run time, async tests fail (they don't skip) without it.
+scope = "both"
+
+# Pure switch: zero fields, no transport, no env. asyncio_mode stays in ini or
+# extra-args.
+
+# Flags namespace: pytest-asyncio's whole CLI surface (verified on 1.4.0) is
+# two literals, kept tight: a namespace is a grant, and a two-option plugin
+# needs no prefix wildcard.
+flags = ["--asyncio-mode", "--asyncio-debug"]

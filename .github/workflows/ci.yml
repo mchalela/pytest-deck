@@ -1,0 +1,114 @@
+name: CI
+
+# Build the Svelte bundle, run the tox matrix (py311-314 x pytest 8/9), and the
+# quality envs (style, style-js, docstyle, coverage, audit): the same gate
+# `tox` runs locally.
+#
+# NOTE: the frontend build has to run before the Python tests. The built bundle
+# lands in pytest_deck/static/ (vite outDir), which the package ships and the
+# server serves. tox's `isolated_build` then packages that freshly built static/
+# into the wheel each env installs.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Cancel superseded runs on the same ref (don't waste CI on stale pushes).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # 1) Build the frontend bundle once and hand it to the test matrix as an
+  #    artifact, so every matrix job tests the same built bundle and none of them
+  #    re-runs Node. (tox's `frontend` env also builds, but building once here
+  #    keeps the matrix Node-free and fast.)
+  frontend:
+    name: Build frontend bundle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"        # current active LTS; matches the dev install
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install deps and build
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+      - name: Upload built bundle
+        uses: actions/upload-artifact@v6
+        with:
+          name: static-bundle
+          path: pytest_deck/static/
+          if-no-files-found: error
+          retention-days: 1
+
+  # 2) The test matrix: every Python x pytest combo tox defines. Each job pulls
+  #    the pre-built bundle into pytest_deck/static/ so the wheel tox builds ships
+  #    it, then runs exactly one tox env (isolated_build, wheel install, pytest).
+  test:
+    name: py${{ matrix.python }} · pytest${{ matrix.pytest }}
+    needs: frontend
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false            # one failing combo shouldn't hide the others
+      matrix:
+        # `python` is the version setup-python installs; `pyfactor` is the matching
+        # tox env prefix (py311/py312/py313/py314). Pairing them in `include`
+        # avoids any string-munging of "3.11" -> "311" in the run step.
+        include:
+          - { python: "3.11", pyfactor: "py311", pytest: "8" }
+          - { python: "3.11", pyfactor: "py311", pytest: "9" }
+          - { python: "3.12", pyfactor: "py312", pytest: "8" }
+          - { python: "3.12", pyfactor: "py312", pytest: "9" }
+          - { python: "3.13", pyfactor: "py313", pytest: "8" }
+          - { python: "3.13", pyfactor: "py313", pytest: "9" }
+          - { python: "3.14", pyfactor: "py314", pytest: "8" }
+          - { python: "3.14", pyfactor: "py314", pytest: "9" }
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Fetch the pre-built frontend bundle
+        uses: actions/download-artifact@v7
+        with:
+          name: static-bundle
+          path: pytest_deck/static/
+      - name: Install tox
+        run: python -m pip install --upgrade pip tox
+      - name: Run the matching tox env
+        # e.g. py311 + pytest 8 -> `tox -e py311-pytest8` (mirrors tox.ini envlist).
+        run: tox -e ${{ matrix.pyfactor }}-pytest${{ matrix.pytest }}
+
+  # 3) Quality gate: style/docstyle/style-js/coverage/audit in one job on one
+  #    Python. Needs the bundle (coverage's server tests serve real assets) and
+  #    Node (style-js runs npm; the JS-shim tests in coverage need node on PATH).
+  quality:
+    name: style · docstyle · style-js · coverage · audit
+    needs: frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Fetch the pre-built frontend bundle
+        uses: actions/download-artifact@v7
+        with:
+          name: static-bundle
+          path: pytest_deck/static/
+      - name: Install tox
+        run: python -m pip install --upgrade pip tox
+      - name: Run the quality envs
+        run: tox -e style,docstyle,style-js,coverage,audit

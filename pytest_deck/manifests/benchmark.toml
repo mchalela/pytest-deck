@@ -1,0 +1,57 @@
+# Curated manifest: pytest-benchmark.
+# id is the plugin's pytest11 entry-point name, exactly the token `-p` loads
+# under PYTEST_DISABLE_PLUGIN_AUTOLOAD. The dist name is display metadata only.
+id = "benchmark"
+label = "Benchmarks (pytest-benchmark)"
+dist = "pytest-benchmark"
+# Collect needs `-p benchmark` too: without the plugin, @pytest.mark.benchmark
+# raises PytestUnknownMarkWarning, which a user ini `filterwarnings = error`
+# (honored, P15) turns collect-fatal.
+scope = "both"
+
+# Flags namespace: every pytest-benchmark option is --benchmark-* (verified on
+# 5.2.3; there is no bare --benchmark). Self-contained ini addopts tokens in
+# this namespace are re-admitted at run time while the switch is on.
+flags = ["--benchmark-*"]
+
+# Save-file transport rather than --benchmark-json: that flag always embeds
+# stats.data (every raw round timing; measured at 38.8 MB for 7 benchmarks),
+# while --benchmark-save writes the identical schema without it (~4 KB/record).
+# --benchmark-storage redirects the save under the run tmpdir, which also stops
+# benchmark's unconditional ./.benchmarks/ mkdir from dirtying the user tree.
+# The path's `*` segment is the host-derived machine-id dir the manifest can't
+# spell; the runner glob-resolves it (a fresh tmpdir means exactly one match).
+[transport]
+type = "json_file"
+arg = [
+    "--benchmark-save=deck",
+    "--benchmark-storage=file://{tmpdir}/benchmarks",
+]
+path = "{tmpdir}/benchmarks/*/0001_deck.json"
+
+# Only the knobs that bound the timing loop get fields. warmup, timer,
+# disable_gc, table cosmetics, compare and histogram stay extra-args.
+
+# The suite needs the `benchmark` fixture to import and run; disable turns the
+# timing loop off (the fixture calls the function once). No save file is
+# written then, so the run reports plugin_empty, by design.
+[[fields]]
+key = "disable"
+label = "Disable timing (--benchmark-disable)"
+type = "bool"
+default = false
+arg = "--benchmark-disable"
+
+[[fields]]
+key = "min_rounds"
+label = "Min rounds (--benchmark-min-rounds)"
+type = "string"
+default = ""
+arg = "--benchmark-min-rounds={value}"
+
+[[fields]]
+key = "max_time"
+label = "Max time per test, s (--benchmark-max-time)"
+type = "string"
+default = ""
+arg = "--benchmark-max-time={value}"

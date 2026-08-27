@@ -1,0 +1,17 @@
+# Curated manifest: pytest-mock.
+# id is the plugin's pytest11 entry-point name, exactly the token `-p` loads
+# under PYTEST_DISABLE_PLUGIN_AUTOLOAD. The dist name is display metadata only.
+id = "pytest_mock"
+label = "Mocking (pytest-mock)"
+dist = "pytest-mock"
+# Collect is byte-identical without it in the normal case, but pytest-mock
+# registers 2 ini options, so a user `filterwarnings = error` (honored, P15)
+# turns the unknown-ini PytestConfigWarning collect-fatal with no other in-deck
+# remedy (extra-args is run-only). `-p pytest_mock` at collect is verified
+# zero-cost, hence scope="both" (the scope principle).
+scope = "both"
+
+# Pure switch: zero fields, no transport, no env; the `mocker` fixture is the
+# whole surface. mock_use_standalone_module and friends stay in ini or
+# extra-args. No `flags` namespace either: pytest-mock declares zero CLI options
+# (verified on 3.15.1; only ini keys), so there is nothing to re-admit.

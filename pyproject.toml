@@ -1,0 +1,98 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pytest-deck"
+version = "0.1.0"
+description = "Interactive browser dashboard for pytest"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "Martin Chalela", email = "tinchochalela@gmail.com" }]
+license = "MIT"
+license-files = ["LICENSE"]
+dependencies = [
+    "pytest>=8.0",
+    "fastapi>=0.115",
+    "sse-starlette>=2.0",
+    "uvicorn>=0.30",
+]
+classifiers = [
+    "Framework :: Pytest",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+
+[project.urls]
+Homepage = "https://github.com/mchalela/pytest-deck"
+Documentation = "https://pytest-deck.readthedocs.io/"
+Repository = "https://github.com/mchalela/pytest-deck"
+Changelog = "https://github.com/mchalela/pytest-deck/blob/main/CHANGELOG.md"
+Issues = "https://github.com/mchalela/pytest-deck/issues"
+
+[project.optional-dependencies]
+test = ["httpx>=0.27"]
+docs = [
+    "sphinx>=8.0",
+    "myst-parser[linkify]>=4.0",
+    "furo>=2024.8",
+    "sphinx-copybutton>=0.5",
+    "sphinx-design>=0.6",
+]
+
+[project.scripts]
+pytest-deck = "pytest_deck.server:main"
+
+# This is the outer plugin (adds --deck, launches the server), the one pytest
+# auto-loads. The inner fd-3-emitting plugin (pytest_deck._inner) is deliberately
+# not listed here: it is injected only into the collect and run subprocesses via
+# ``-p pytest_deck._inner``.
+[project.entry-points.pytest11]
+deck = "pytest_deck.plugin"
+
+# The built Svelte bundle (pytest_deck/static/) is git-ignored because ``vite
+# build`` generates it. Hatchling honors VCS ignores, so without help the bundle
+# would be dropped from both the sdist and the wheel. ``artifacts`` un-ignores
+# these paths for normal inclusion in both targets. ``force-include`` is the wrong
+# tool here: it adds the tree a second time and collides ("A second file is being
+# added... at the same path: pytest_deck/static/index.html") on the sdist-to-wheel
+# path CI uses, because the sdist already carries the files. CI and release builds
+# must build the frontend first so the bundle exists.
+# See https://hatch.pypa.io/latest/config/build/#artifacts
+[tool.hatch.build]
+artifacts = ["pytest_deck/static/**"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["pytest_deck"]
+
+# Local Sphinx output is ignored via docs/.gitignore, but hatchling only reads
+# the root ignore file; without this exclude the whole docs/_build tree (tens of
+# MB) lands in the sdist.
+[tool.hatch.build.targets.sdist]
+exclude = ["docs/_build"]
+
+# Keep isort's import ordering compatible with black's formatting.
+[tool.isort]
+profile = "black"
+
+[tool.black]
+target-version = ["py311", "py312", "py313", "py314"]
+
+# patch=subprocess instruments the spawned pytest children too, which is where
+# _inner.py runs. The parallel data files are merged by `coverage combine` in the
+# tox env.
+[tool.coverage.run]
+source = ["pytest_deck"]
+parallel = true
+patch = ["subprocess"]
+
+[tool.coverage.report]
+show_missing = true
+
+[tool.pytest.ini_options]
+# The dev suite is the plugin's own tests; the toy suite under examples/ is a
+# fixture for the dashboard, not part of this run.
+testpaths = ["tests"]

@@ -1,0 +1,40 @@
+// The core pipeline of pytest-deck (ARCHITECTURE.md §1).
+// Regenerate the committed SVG after editing:
+//   dot -Tsvg docs/_static/pipeline.dot -o docs/_static/pipeline.svg
+//
+// Colors are fixed (not themed): filled boxes with dark text stay legible on
+// both the light and dark furo theme and on GitHub, over a transparent bg.
+digraph pipeline {
+    rankdir = LR;
+    bgcolor = "transparent";
+    pad = "0.2";
+    nodesep = "0.7";
+    ranksep = "0.9";
+
+    node [
+        shape = box,
+        style = "rounded,filled",
+        fillcolor = "#e8ecf1",
+        color = "#5b6472",
+        fontcolor = "#1f2430",
+        fontname = "Helvetica,Arial,sans-serif",
+        fontsize = 12,
+        margin = "0.22,0.14",
+    ];
+    edge [
+        color = "#7a8494",
+        fontcolor = "#7a8494",
+        fontname = "Helvetica,Arial,sans-serif",
+        fontsize = 10,
+        arrowsize = 0.8,
+    ];
+
+    browser [label = "browser\n(UI state: files, markers, node IDs)"];
+    server [label = "server\n(FastAPI)"];
+    subprocess [label = "pytest\n(--collect-only OR a real run)"];
+
+    browser -> server [label = "collect / run request"];
+    server -> subprocess [label = "build CLI args,\nrun fresh"];
+    subprocess -> server [label = "structured JSON\non fd 3"];
+    server -> browser [label = "SSE events,\nlive"];
+}

@@ -1,0 +1,43 @@
+# Curated manifest: pytest-mpl.
+# id is the plugin's pytest11 entry-point name, exactly the token `-p` loads
+# under PYTEST_DISABLE_PLUGIN_AUTOLOAD. The dist name is display metadata only.
+id = "pytest_mpl"
+label = "Matplotlib figures (pytest-mpl)"
+dist = "pytest-mpl"
+scope = "run"
+render = "artifacts"
+
+# Flags namespace: pytest-mpl's surface is --mpl plus --mpl-* (verified on
+# 0.19.0). Self-contained ini addopts tokens in this namespace are re-admitted
+# at run time while the switch is on.
+flags = ["--mpl", "--mpl-*"]
+
+# Artifact transport: pytest-mpl writes result/baseline/diff PNGs plus a
+# results.json index under --mpl-results-path; the deck serves everything under
+# `root` and joins results.json's dotted keys to nodeids after the child exits.
+# `arg` is two tokens: --mpl-results-path points the plugin at the run tmpdir,
+# and --mpl-generate-summary=json is always on (a green run writes no index
+# otherwise, so the pane would always be empty).
+[transport]
+type = "artifact_dir"
+arg = ["--mpl-results-path={tmpdir}/artifacts", "--mpl-generate-summary=json"]
+root = "{tmpdir}/artifacts"
+index = "results.json"
+index_format = "mpl"
+
+# --mpl activates comparison against the stored baselines; without it pytest-mpl
+# only checks that decorated tests run. On by default so the pane is populated.
+[[fields]]
+key = "compare"
+label = "Compare against baseline (--mpl)"
+type = "bool"
+default = true
+arg = "--mpl"
+
+# No baseline-path field on purpose: pytest-mpl's default finds `baseline/`
+# beside each test module (path-relative, so it's correct under the deck's
+# cwd=rootdir). --mpl-baseline-path takes a single dir resolved relative to
+# rootdir, so a relative value typed into a field would silently miss (it looks
+# up from rootdir, not the test dir). A suite with one central baseline dir can
+# knowingly pass an absolute --mpl-baseline-path through the tier-2 extra-args
+# field.

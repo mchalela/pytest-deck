@@ -1,0 +1,27 @@
+# Curated manifest: pytest-metadata.
+# id is the plugin's pytest11 entry-point name, exactly the token `-p` loads
+# under PYTEST_DISABLE_PLUGIN_AUTOLOAD. The dist name is display metadata only.
+id = "metadata"
+label = "Environment (pytest-metadata)"
+dist = "pytest-metadata"
+scope = "run"
+
+# Flags namespace (verified on 3.1.1: --metadata, --metadata-from-json and
+# --metadata-from-json-file). `--metadata KEY VALUE` is nargs=2, so its ini form
+# is three tokens and only the flag itself is namespace-covered; KEY and VALUE
+# classify as positionals and become leftovers (a bare re-admitted --metadata
+# fails loud, exit 4). The =-form --metadata-from-json='{...}' rides whole.
+flags = ["--metadata", "--metadata-*"]
+
+# fd-3 transport: pytest-metadata writes no file; its dict lives in
+# config.stash. The deck's inner plugin emits it as a `plugin_meta` record on
+# the fd-3 pipe, and the runner stashes it mid-run and resolves it after exit
+# onto `plugin_data` (wire render "metadata"). No file, no argv token.
+[transport]
+type = "fd3"
+
+# Switch-only, with zero fields on purpose: `--metadata KEY VALUE` is nargs=2
+# (two tokens, which single-token field templates cannot express), so extra
+# metadata rides the tier-2 extra-args field. Note: under autoload-disable the
+# `Plugins` key reflects only the `-p`-enabled set. That is accurate for deck
+# runs, not a bug.
