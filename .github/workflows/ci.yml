@@ -41,7 +41,7 @@ jobs:
           npm ci
           npm run build
       - name: Upload built bundle
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: static-bundle
           path: pytest_deck/static/
