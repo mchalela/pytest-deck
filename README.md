@@ -1,6 +1,6 @@
 # pytest-deck
 
-[![CI](https://github.com/mchalela/pytest-deck/actions/workflows/ci.yml/badge.svg)](https://github.com/mchalela/pytest-deck/actions/workflows/ci.yml)
+[![CI](https://github.com/mchalela/pytest-deck/actions/workflows/ci.yml/badge.svg)](https://github.com/mchalela/pytest-deck/actions/workflows/ci.yml) [![Docs](https://readthedocs.org/projects/pytest-deck/badge/?version=stable)](https://pytest-deck.readthedocs.io/en/stable/) [![PyPI](https://img.shields.io/pypi/v/pytest-deck)](https://pypi.org/project/pytest-deck/)
 
 An interactive browser dashboard for pytest. Collect your suite as a foldable
 tree, pick what to run with checkboxes or marker chips, and watch results stream
