@@ -146,3 +146,87 @@ export function headerAndSummary(text, { finished = false } = {}) {
   const out = [header, tail].filter(Boolean).join("\n\n").trimEnd();
   return out || raw.trimEnd();
 }
+
+// The raw (ANSI-preserving) remainder of `raw` after its first `n` visible
+// characters. SGR sequences are zero width, as in overlay().
+function rawAfterVisible(raw, n) {
+  let i = 0;
+  while (i < raw.length && n > 0) {
+    SGR_AT.lastIndex = i;
+    const m = SGR_AT.exec(raw);
+    if (m) {
+      i += m[0].length;
+    } else {
+      n--;
+      i++;
+    }
+  }
+  return raw.slice(i);
+}
+
+// A short-summary line that names a test: pytest's
+// _get_line_with_reprcrash_message builds `f"{word} {nodeid}"` and appends
+// " - {message}" when there is one (show_xfailed / show_xpassed do the same
+// with the reason). SKIPPED lines carry `[n] path:line` instead of a nodeid
+// and never match here.
+const SUMMARY_ENTRY = /^(FAILED|ERROR|XFAIL|XPASS|PASSED) (\S.*)$/;
+
+// Recognise one line (stripped copy) as an entry for a nodeid `known` accepts.
+// The nodeid is normally the text before the first " - ", but a parametrize
+// id may itself hold " - ", so each split point is tried left to right and
+// the whole remainder last (a line with no message). `rest` is the raw slice
+// after the nodeid (the reset that closes pytest's bold nodeid, then the
+// message), colours kept for ansiToHtml.
+function summaryEntry(raw, plain, known) {
+  const m = SUMMARY_ENTRY.exec(plain);
+  if (!m) return null;
+  const [, word, remainder] = m;
+  const candidates = [];
+  let dash = remainder.indexOf(" - ");
+  while (dash >= 0) {
+    candidates.push(remainder.slice(0, dash));
+    dash = remainder.indexOf(" - ", dash + 1);
+  }
+  candidates.push(remainder);
+  const nodeid = candidates.find(known);
+  if (nodeid === undefined) return null;
+  const rest = rawAfterVisible(raw, word.length + 1 + nodeid.length);
+  return { kind: "entry", nodeid, rest };
+}
+
+// Split headerAndSummary() output into render pieces: the lines of the
+// "short test summary info" block (marker exclusive, closing banner
+// exclusive) that name a test the store knows become
+// {kind: "entry", nodeid, rest}; every other stretch of lines stays one
+// {kind: "text", raw} piece, raw and contiguous, so the pane renders it
+// exactly as before. `known(nodeid)` is injected (the results store, in the
+// pane) so this module stays rune-free and testable under plain node. A
+// buffer with no summary block is a single text piece.
+export function summaryPieces(text, known) {
+  const raw = String(text ?? "");
+  const lines = raw.split("\n");
+  const plain = lines.map(stripAnsi);
+  const marker = plain.findIndex((l) => l.includes("short test summary info"));
+  if (marker < 0) return [{ kind: "text", raw }];
+  let end = plain.findIndex((l, i) => i > marker && isBanner(l));
+  if (end < 0) end = lines.length;
+
+  const pieces = [];
+  let buf = [];
+  const flush = () => {
+    if (buf.length) pieces.push({ kind: "text", raw: buf.join("\n") });
+    buf = [];
+  };
+  lines.forEach((line, i) => {
+    const entry =
+      i > marker && i < end ? summaryEntry(line, plain[i], known) : null;
+    if (entry) {
+      flush();
+      pieces.push(entry);
+    } else {
+      buf.push(line);
+    }
+  });
+  flush();
+  return pieces;
+}

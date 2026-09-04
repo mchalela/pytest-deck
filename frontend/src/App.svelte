@@ -457,7 +457,11 @@
     onpointercancel={endDrag}
   ></div>
 
-  <DetailPane hasTree={!!tree} onclose={() => (ui.detailId = null)} />
+  <DetailPane
+    hasTree={!!tree}
+    onclose={() => (ui.detailId = null)}
+    onopen={(id) => (ui.detailId = id)}
+  />
 </div>
 
 <style>

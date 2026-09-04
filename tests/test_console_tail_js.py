@@ -58,6 +58,37 @@ def _finished(text):
     return [text, {"finished": True}]
 
 
+# summaryPieces: each case is [text, knownNodeids]; the pane's `known` is the
+# results store, here a fixed list.
+_PIECES_HARNESS = f"""
+import {{ summaryPieces }} from {json.dumps(_TAIL_JS.as_uri())};
+
+let raw = "";
+process.stdin.setEncoding("utf8");
+process.stdin.on("data", (c) => (raw += c));
+process.stdin.on("end", () => {{
+  const cases = JSON.parse(raw);
+  process.stdout.write(
+    JSON.stringify(
+      cases.map(([text, known]) => summaryPieces(text, (id) => known.includes(id))),
+    ),
+  );
+}});
+"""
+
+
+def _pieces(cases):
+    proc = subprocess.run(
+        ["node", "--input-type=module", "-e", _PIECES_HARNESS],
+        input=json.dumps(cases),
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert proc.returncode == 0, f"node failed:\n{proc.stderr}"
+    return json.loads(proc.stdout)
+
+
 def _convert(cases):
     proc = subprocess.run(
         ["node", "--input-type=module", "-e", _HARNESS],
@@ -479,3 +510,123 @@ def test_trailing_reset_line_is_trimmed_on_every_path():
     for out in (done, live):
         assert "unrecognized arguments: --bogus-flag" in out
         assert out.endswith("  rootdir: /tmp/suite")
+
+
+# The short-summary shapes pytest emits: the word coloured, the nodeid's
+# `::` tail bold, an optional " - message" (width-trimmed), a setup ERROR, an
+# XPASS reason, a collect-time ERROR on a bare file path, and a folded SKIPPED
+# line that carries `[n] path:line` instead of a nodeid.
+_MARKER = (
+    "\x1b[36m\x1b[1m=========================== short test summary info "
+    "===========================\x1b[0m"
+)
+_FAILED_LINE = (
+    "\x1b[31mFAILED\x1b[0m test_suite.py::\x1b[1mtest_c_fails\x1b[0m - assert 1 == 2"
+)
+_ERROR_LINE = (
+    "\x1b[31mERROR\x1b[0m test_suite.py::\x1b[1mtest_broken_fixture\x1b[0m"
+    " - fixture 'nope' not found"
+)
+_XPASS_LINE = "\x1b[33mXPASS\x1b[0m test_suite.py::\x1b[1mtest_flaky\x1b[0m - wip"
+_COLLECT_ERROR_LINE = "\x1b[31mERROR\x1b[0m tests/test_bad.py"
+_SKIPPED_LINE = "\x1b[33mSKIPPED\x1b[0m [1] test_suite.py:12: not today"
+_DASHED_ID = "test_suite.py::test_p[a - b]"
+_DASHED_LINE = "\x1b[31mFAILED\x1b[0m test_suite.py::\x1b[1mtest_p[a - b]\x1b[0m - boom"
+_SUMMARY_BLOCK = "\n".join(
+    [
+        _MARKER,
+        _FAILED_LINE,
+        _ERROR_LINE,
+        _XPASS_LINE,
+        _COLLECT_ERROR_LINE,
+        _SKIPPED_LINE,
+        _DASHED_LINE,
+        _CLOSING,
+    ]
+)
+_PIECES_RUN = "header line\ncollected 6 items\n\n" + _SUMMARY_BLOCK
+_KNOWN = [
+    "test_suite.py::test_c_fails",
+    "test_suite.py::test_broken_fixture",
+    "test_suite.py::test_flaky",
+    _DASHED_ID,
+]
+
+
+@requires_node
+def test_summary_pieces_turn_known_lines_into_entries():
+    # Every WORD-nodeid line the store knows becomes an entry: nodeid read off
+    # the stripped copy (pytest bolds its `::` tail), `rest` the raw slice
+    # after it (the closing reset, then " - message"), colours kept.
+    (pieces,) = _pieces([[_PIECES_RUN, _KNOWN]])
+    entries = [p for p in pieces if p["kind"] == "entry"]
+    assert [e["nodeid"] for e in entries] == [
+        "test_suite.py::test_c_fails",
+        "test_suite.py::test_broken_fixture",
+        "test_suite.py::test_flaky",
+        _DASHED_ID,
+    ]
+    assert entries[0]["rest"] == "\x1b[0m - assert 1 == 2"
+    assert entries[1]["rest"] == "\x1b[0m - fixture 'nope' not found"
+    assert entries[3]["rest"] == "\x1b[0m - boom"
+
+
+@requires_node
+def test_summary_pieces_keep_everything_else_as_raw_text():
+    # The header through the marker is one raw piece; unrecognised summary
+    # lines (a collect-time ERROR on a file, a folded SKIPPED) and the closing
+    # banner stay raw text too, in order, so the pane renders them unchanged.
+    (pieces,) = _pieces([[_PIECES_RUN, _KNOWN]])
+    kinds = [p["kind"] for p in pieces]
+    assert kinds == ["text", "entry", "entry", "entry", "text", "entry", "text"]
+    assert pieces[0]["raw"] == "header line\ncollected 6 items\n\n" + _MARKER
+    assert pieces[4]["raw"] == _COLLECT_ERROR_LINE + "\n" + _SKIPPED_LINE
+    assert pieces[6]["raw"] == _CLOSING
+
+
+@requires_node
+def test_summary_pieces_leave_unknown_nodeids_alone():
+    # A nodeid the store cannot vouch for (a cwd-relative path the tree does
+    # not use, a stale line) is not worth a badge: the line stays text.
+    (pieces,) = _pieces([[_PIECES_RUN, []]])
+    assert [p["kind"] for p in pieces] == ["text"]
+    assert pieces[0]["raw"] == _PIECES_RUN
+
+
+@requires_node
+def test_summary_pieces_try_every_dash_for_a_dashed_param_id():
+    # "test_p[a - b] - boom": the first " - " lands inside the param id, so
+    # the split points are tried left to right until the store recognises
+    # one. A line with no message at all (a bare XPASS) is the last candidate,
+    # and a line whose split points are all unknown stays text.
+    no_msg = "\x1b[33mXPASS\x1b[0m test_suite.py::\x1b[1mtest_flaky\x1b[0m"
+    dashed, bare, unknown = _pieces(
+        [
+            [_MARKER + "\n" + _DASHED_LINE, [_DASHED_ID]],
+            [_MARKER + "\n" + no_msg, ["test_suite.py::test_flaky"]],
+            [_MARKER + "\n" + _DASHED_LINE, ["test_suite.py::other"]],
+        ]
+    )
+    assert dashed[1]["nodeid"] == _DASHED_ID
+    assert dashed[1]["rest"] == "\x1b[0m - boom"
+    assert bare[1]["nodeid"] == "test_suite.py::test_flaky"
+    assert bare[1]["rest"] == "\x1b[0m"
+    assert [p["kind"] for p in unknown] == ["text"]
+
+
+@requires_node
+def test_summary_pieces_without_a_summary_block_are_one_text_piece():
+    # An all-passed run has no short summary: the output is a single raw
+    # piece equal to the input, and an empty buffer is an empty piece.
+    passed, empty = _pieces([[_COLORED_ALL_PASS, _KNOWN], ["", _KNOWN]])
+    assert passed == [{"kind": "text", "raw": _COLORED_ALL_PASS}]
+    assert empty == [{"kind": "text", "raw": ""}]
+
+
+@requires_node
+def test_summary_pieces_stop_at_the_closing_banner():
+    # Lines pytest's main() prints below the banner (exit 4) never become
+    # entries even when they look like one and the store knows the id.
+    after = _MARKER + "\n" + _CLOSING + "\n" + _FAILED_LINE
+    (pieces,) = _pieces([[after, _KNOWN]])
+    assert [p["kind"] for p in pieces] == ["text"]

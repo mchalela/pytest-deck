@@ -4,6 +4,7 @@
   // column when no test is pinned.
   import {
     run,
+    resultFor,
     coverageTotal,
     coverageFiles,
     coverageEmpty,
@@ -26,11 +27,12 @@
   } from "../lib/coverageView.svelte.js";
   import { fetchCoverageFile } from "../lib/api.js";
   import { ansiToHtml } from "../lib/ansi.js";
-  import { headerAndSummary } from "../lib/consoleTail.js";
+  import { headerAndSummary, summaryPieces } from "../lib/consoleTail.js";
   import CoverageSource from "./CoverageSource.svelte";
   import JsonTree from "./JsonTree.svelte";
+  import StatusBadge from "./StatusBadge.svelte";
 
-  let { hasTree } = $props();
+  let { hasTree, onopen } = $props();
 
   // Click a coverage file → fetch its source + hit/miss lines and open the
   // gutter view (CoverageSource) in place of this summary. Store holds the view
@@ -107,10 +109,18 @@
   // an ANSI-stripped copy — the extraction lives in consoleTail.js.
   // Once the run is over (`run.active` false: finished, error or cancelled) a
   // buffer with no banner is shown whole — that text IS pytest's message.
-  let html = $derived(
+  //
+  // The block is then split into pieces: each "FAILED nodeid - msg" line of
+  // the short summary whose nodeid the store knows becomes a row with the
+  // same clickable status badge as the tree (the badge reads its outcome off
+  // the store itself), everything else stays pytest's raw text.
+  let pieces = $derived(
     run.console
-      ? ansiToHtml(headerAndSummary(run.console, { finished: !run.active }))
-      : "",
+      ? summaryPieces(
+          headerAndSummary(run.console, { finished: !run.active }),
+          (id) => resultFor(id) != null,
+        )
+      : [],
   );
 </script>
 
@@ -227,8 +237,21 @@
       {/if}
     </div>
   {/each}
-  <!-- eslint-disable-next-line svelte/no-at-html-tags -- ansiToHtml escapes all text runs -->
-  <pre class="console">{@html html}</pre>
+  <div class="console">
+    {#each pieces as p, i (i)}
+      {#if p.kind === "entry"}
+        <div class="sumrow">
+          <StatusBadge nodeid={p.nodeid} {onopen} />
+          <span class="sumid" title={p.nodeid}>{p.nodeid}</span>
+          <!-- eslint-disable-next-line svelte/no-at-html-tags -- ansiToHtml escapes all text runs -->
+          <span class="summsg">{@html ansiToHtml(p.rest)}</span>
+        </div>
+      {:else}
+        <!-- eslint-disable-next-line svelte/no-at-html-tags -- ansiToHtml escapes all text runs -->
+        <pre class="consoletext">{@html ansiToHtml(p.raw)}</pre>
+      {/if}
+    {/each}
+  </div>
 {/if}
 
 <style>
@@ -366,14 +389,35 @@
     text-align: right;
   }
   .console {
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--fg);
+  }
+  .consoletext {
     border: none;
     background: transparent;
     padding: 0;
     margin: 0;
-    font-size: 12px;
-    line-height: 1.45;
+    font: inherit;
     white-space: pre-wrap;
     word-break: break-word;
-    color: var(--fg);
+  }
+  /* One short-summary entry: badge first, so it reads like the tree column. */
+  .sumrow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 1px 0;
+  }
+  .sumid {
+    flex: none;
+    max-width: 60%;
+    overflow-wrap: anywhere;
+  }
+  .summsg {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    color: var(--muted);
   }
 </style>
