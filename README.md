@@ -61,7 +61,9 @@ For the full tour, start with the
 - Select with checkboxes, **marker chips** that bulk-select every matching
   test, and `-k` / `-m` expression fields.
 - Hit **▶ Run** and **PASS / FAIL / ERROR / SKIP** stream in live as each test
-  finishes, tracebacks in pytest's own colors, captured output alongside.
+  finishes, tracebacks in pytest's own colors, captured output alongside. The
+  run summary's `FAILED` lines carry the same clickable badge, and every
+  traceback has a **copy** button.
 - **Re-run failed**: one click re-runs everything currently failed or errored,
   regardless of the selection.
 - **↻ Collect** to re-collect after an edit: added, removed, and changed tests

@@ -50,7 +50,8 @@ What to run is decided in the browser, not on the command line. You can:
 
 Click **▶ Run**. Each test flips to **PASS**, **FAIL**, **ERROR**, or **SKIP** the
 moment it finishes, with live rollups on every group. Click any result to see
-its traceback (in pytest's own colors) alongside the captured output.
+its traceback (in pytest's own colors) alongside the captured output, with a
+**copy** button to take the plain text with you.
 
 The run is a real `python -m pytest` subprocess, so the outcome matches what
 you'd get running the same selection in your terminal.

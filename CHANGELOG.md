@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Copy button on tracebacks.** Every traceback, captured-output, and
+  warnings block in the detail pane has a **copy** button in its corner that
+  puts the plain text on the clipboard, colors stripped.
+- **Clickable badges in the run summary.** The `FAILED` and `ERROR` lines of
+  pytest's short test summary in the Run info pane now carry the same status
+  badge as the tree; click one to pin that test.
+
 ## 0.1.0 (beta), 2026-08-27
 
 The beta theme is **plugin interop**: the alpha could collect, select, run, and

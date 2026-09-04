@@ -118,6 +118,10 @@ FAILED tests/test_login.py::test_bad_password - AssertionError
 ========================= 1 failed, 5 passed in 0.42s ==========================
 ```
 
+The `FAILED` and `ERROR` lines of the short summary carry the same clickable
+status badge as the tree, so you can jump straight from the summary to a
+failing test's detail.
+
 If a run ends without pytest's summary (you cancelled it, or the server went
 away), the pane shows the whole output instead.
 
@@ -126,6 +130,9 @@ Click any status badge to pin that test and see its detail:
 - Per-phase **tracebacks** (setup, call, teardown), in pytest's own colors.
 - **Captured output**, for phases that produced it.
 - A **warnings** section, if any were raised.
+
+Each block has a **copy** button in its corner. It puts the plain text on the
+clipboard, without the colors, ready to paste into an issue or a chat.
 
 Click **✕ deselect** in the pane header to go back to the Run info pane. Badges
 are clickable in every state: if a test hasn't run yet, was filtered out by `-k`
