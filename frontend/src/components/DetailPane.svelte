@@ -14,10 +14,10 @@
   } from "../lib/results.svelte.js";
   import { annotationFor } from "../lib/annotations.svelte.js";
   import { collectErrorFor } from "../lib/collectErrors.svelte.js";
-  import { ansiToHtml } from "../lib/ansi.js";
   import RunConsole from "./RunConsole.svelte";
+  import CopyPre from "./CopyPre.svelte";
 
-  let { hasTree, onclose } = $props();
+  let { hasTree, onclose, onopen } = $props();
 
   let pinned = $derived(ui.detailId);
   // A pinned id can be a COLLECTION error (an erroring file) rather than a test
@@ -115,7 +115,7 @@
   </div>
   <div class="detailbody">
     {#if !pinned}
-      <RunConsole {hasTree} />
+      <RunConsole {hasTree} {onopen} />
     {:else if collectErr != null}
       <!-- Collection error (pytest's ERRORS section). No run outcome, just the
            collect traceback — rendered ANSI-coloured like run tracebacks. -->
@@ -123,8 +123,7 @@
         <span class="word">COLLECTION ERROR</span>
       </div>
       <h3>collect: traceback</h3>
-      <!-- eslint-disable-next-line svelte/no-at-html-tags -- ansiToHtml escapes all text runs -->
-      <pre>{@html ansiToHtml(collectErr)}</pre>
+      <CopyPre text={collectErr} />
     {:else if !res}
       <p class="ok">no result yet. Run this test.</p>
     {:else if outcome === "running"}
@@ -160,11 +159,9 @@
       </div>
       {#each sections.list as s (s)}
         <h3>{s.title}</h3>
-        <!-- ansiToHtml HTML-escapes every text run (XSS guard) and is a no-op on
-             text with no ANSI escapes, so plain sections render identically. The
-             traceback sections (ph.longrepr) arrive ANSI-coloured. -->
-        <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-        <pre>{@html ansiToHtml(s.text)}</pre>
+        <!-- The traceback sections (ph.longrepr) arrive ANSI-coloured; CopyPre
+             renders them through ansiToHtml and copies the plain text. -->
+        <CopyPre text={s.text} />
       {/each}
       {#if !sections.hadDetail && outcome === "passed"}
         <p class="ok">Passed with no captured output.</p>
@@ -280,17 +277,6 @@
   }
   .detailbody h3:first-child {
     margin-top: 0;
-  }
-  .detailbody pre {
-    margin: 0;
-    white-space: pre-wrap;
-    word-break: break-word;
-    font-size: 12px;
-    background: var(--bg);
-    border: 1px solid var(--line);
-    border-radius: 6px;
-    padding: 10px;
-    color: var(--fg);
   }
   .outcome {
     font-size: 13px;
