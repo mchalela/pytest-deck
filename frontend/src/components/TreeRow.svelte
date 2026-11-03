@@ -2,6 +2,9 @@
   // One tree row — a leaf test or a group. Recurses into children for groups.
   // The checkbox is ALWAYS the first cell, flush left at every depth; indentation
   // is applied only to the content after the checkbox (prototype behaviour).
+  // Leaves and groups share the same leading cells (checkbox, indent, 14px
+  // caret slot, name) so names align at a given depth; everything that varies
+  // per row (diff glyph, marker chips, badges) comes after the name.
   import StatusBadge from "./StatusBadge.svelte";
   import RollupBadge from "./RollupBadge.svelte";
   import DiffBadge from "./DiffBadge.svelte";
@@ -68,9 +71,13 @@
 
     {#if node.leaf}
       <span class="caret leaf">▸</span>
-      <DiffBadge nodeid={node.nodeid} />
       <span class="name" title={node.nodeid} onclick={onCheck}>{node.name}</span
       >
+      <!-- The added/changed glyph sits AFTER the name so leaf and group
+           names share the same leading cells (checkbox, indent, caret) and
+           line up at every depth. It renders only when set; nothing to the
+           left of it moves. -->
+      <DiffBadge nodeid={node.nodeid} />
       <span class="marks">
         {#each node.markers as m (m)}<span class="mark">{m}</span>{/each}
       </span>
