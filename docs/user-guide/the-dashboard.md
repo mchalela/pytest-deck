@@ -34,7 +34,7 @@ shows a rollup of their outcomes: `✓` passed, `✗` failed, `!` error, `∅`
 skipped.
 
 Above the tree, a toolbar gives you **select all**, **clear**, **expand**, and
-**collapse**.
+**collapse**. It stays put while you scroll a long suite.
 
 ### Selecting tests
 

@@ -565,15 +565,28 @@
     color: var(--muted);
     border-top: 1px solid var(--line);
   }
+  /* No top padding: the sticky toolbar supplies it, so its border box
+     starts exactly at the scrollport edge (a negative top margin instead
+     leaves a gap above the pinned bar in Chrome). */
   .treepane {
     overflow: auto;
     min-width: 0;
-    padding: 12px 16px;
+    padding: 0 16px 12px;
   }
+  /* Pinned to the top of the scrolling tree pane so the buttons stay
+     reachable on a long suite. The rows slide underneath, so the bar needs
+     its own opaque background; padding (not margin) keeps the gap below it
+     covered too. The error/removed strips below stay in the scroll flow. */
   .toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 1;
     display: flex;
     gap: 8px;
-    margin-bottom: 12px;
+    margin: 0 -16px 12px;
+    padding: 12px 16px 10px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--line);
   }
   .empty {
     color: var(--muted);
