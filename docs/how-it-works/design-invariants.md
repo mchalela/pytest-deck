@@ -67,11 +67,12 @@ re-highlight your tracebacks.
 For the deck to match your terminal, it has to import your tests the same way
 pytest does, from the same project root.
 
-pytest-deck picks its project root the same way pytest itself does: it starts
-from the path you point it at and walks upward to the nearest config file
+pytest-deck picks its project root the same way pytest itself does, because it
+reuses the root the `pytest` command already determined from the paths you
+gave: pytest starts from those paths and walks upward to the nearest config file
 (`pyproject.toml`, `pytest.ini`, `tox.ini`, `setup.cfg`, or `setup.py`). Pointing
 `--deck` at a subfolder still finds the real project root, and a bare `--deck`
-reuses the root pytest already determined.
+roots where a bare `pytest` would.
 
 pytest-deck also runs pytest in importlib import mode, which lets it collect
 projects that have same-named test files in different folders (and folders

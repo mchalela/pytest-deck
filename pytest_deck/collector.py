@@ -192,7 +192,7 @@ def collect(rootdir, targets=None, plugin_argv=None):
     # collect (no targets) we pass no positional at all and let pytest apply
     # testpaths or its own cwd default (cwd is rootdir), exactly as bare
     # ``pytest`` does, so the deck collects what the user's terminal ``pytest``
-    # collects. Explicit targets (``?targets=`` or ``--deck PATH``) still ride
+    # collects. Explicit targets (``?targets=`` or ``pytest --deck PATH``) still ride
     # as positionals and override testpaths: the user asked for that path,
     # mirroring ``pytest PATH``.
     if targets:

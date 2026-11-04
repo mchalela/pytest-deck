@@ -70,14 +70,18 @@ regress if broken · **[SPEC]** = external constraint (pytest/SSE/hatchling).
   all be present.** Fixed `--rootdir`/`cwd` keep nodeids stable across
   collect/run passes (nodeids are the UI's primary keys — a shift breaks
   selection + diff). The rootdir VALUE that gets fixed mirrors pytest's own
-  discovery: bare `--deck` reuses the outer `config.rootpath` (pytest already
-  searched from the invocation dir); `--deck PATH` re-derives via pytest's own
-  `determine_setup` (`rootdir.discover_rootdir`), so PATH walks UP to the config
-  anchor exactly as `pytest PATH` would — pinning rootdir to a launched-at subdir
-  would push `cwd` too deep and make coverage key files above it as escaping
-  absolute paths that the `/api/coverage` gate correctly rejects. `--deck PATH`
-  keeps PATH as the initial collection target (rootdir ≠ scope), mirroring
-  `pytest PATH`. `importlib` is required for a *different* reason:
+  discovery: the deck reuses the outer `config.rootpath`, which pytest already
+  derived from the real positionals (`--deck` is a plain flag; `pytest --deck
+  a b` walks UP to the config anchor exactly as `pytest a b` would) — pinning
+  rootdir to a launched-at subdir would push `cwd` too deep and make coverage
+  key files above it as escaping absolute paths that the `/api/coverage` gate
+  correctly rejects. The positionals (dirs, files, node IDs) ride through as
+  the initial collection targets (rootdir ≠ scope). pytest's `testpaths`
+  default is NOT forwarded (the subprocess re-applies the ini itself with no
+  positional), but its invocation-dir default IS when launched from a subdir
+  of rootdir, since the subprocess runs with `cwd=rootdir` and could not
+  re-apply it (`config.args_source` decides). `importlib` is required for a
+  *different* reason:
   collision-free collection of a `__init__.py`-less tree with DUPLICATE
   test-file basenames (`a/test_utils.py` + `b/test_utils.py` — common), which
   `prepend`/`append` crash with exit 2. (Both import modes give stable nodeids,

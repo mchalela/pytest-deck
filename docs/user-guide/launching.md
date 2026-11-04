@@ -14,22 +14,26 @@ This collects and serves the current project, using the same rootdir a bare
 `pytest` would pick. The dashboard takes over before any tests run, so nothing
 runs in this process. The browser drives everything from here.
 
-To limit the dashboard to part of your suite, pass a path:
+To limit the dashboard to part of your suite, pass paths as you would to
+`pytest`:
 
 ```console
 $ pytest --deck tests/api
+$ pytest --deck pkg_a/tests pkg_b/tests
+$ pytest --deck tests/api/test_users.py::test_login
 ```
 
-`pytest --deck tests/api` roots the project exactly where `pytest tests/api`
-would. It walks up to your config file (`pyproject.toml`, `pytest.ini`,
-`tox.ini`, `setup.cfg`, or `setup.py`) to find the root, and the initial tree
-stays scoped to the path you gave. So the collected tree matches what
-`pytest tests/api` would collect.
+`--deck` is a flag. The positional arguments are pytest's own, so directories,
+files, and node IDs all work, in any number. `pytest --deck tests/api` roots
+the project exactly where `pytest tests/api` would. It walks up to your config
+file (`pyproject.toml`, `pytest.ini`, `tox.ini`, `setup.cfg`, or `setup.py`) to
+find the root, and the initial tree stays scoped to the paths you gave. So the
+collected tree matches what `pytest tests/api` would collect.
 
 ```{note}
-The path must be a directory that exists. If you point `--deck` at a missing
-path or a file, pytest exits with a usage error before the server starts,
-instead of failing later inside the dashboard.
+Each path must exist. If you point `--deck` at a missing path, pytest exits
+with a usage error before the server starts, instead of failing later inside
+the dashboard.
 ```
 
 `--deck-port` pins the server to a port:
@@ -62,7 +66,7 @@ $ python -m pytest_deck.server tests/api   # the same thing, module form
 
 The path is optional and defaults to the current directory.
 
-Unlike `pytest --deck PATH`, the standalone command roots the project at the
+Unlike `pytest --deck tests/api`, the standalone command roots the project at the
 path you give. It does not walk up to find the root. `pytest-deck tests/api`
 makes `tests/api` the rootdir: test IDs read `test_users.py::test_login` rather
 than `tests/api/test_users.py::test_login`, and pytest's working directory and

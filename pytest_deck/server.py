@@ -50,18 +50,19 @@ _SSE_RETRY_MS = 1000
 _SSE_SHUTDOWN_GRACE = 2.0
 
 
-def create_app(rootdir, initial_target=None):
+def create_app(rootdir, initial_targets=None):
     """Build the FastAPI app bound to ``rootdir`` and its single RunManager.
 
-    ``initial_target`` scopes the default (no-``targets``) collection to a
-    subtree of ``rootdir``. It is set when the deck was launched as
-    ``--deck PATH`` with PATH a subdirectory, so the initial tree mirrors
-    ``pytest PATH`` (rootdir walks up to the config anchor; collection stays
-    under PATH). ``None`` means the whole rootdir, the default for bare
-    ``--deck``.
+    ``initial_targets`` scopes the default (no-``targets``) collection: the
+    paths or node IDs the deck was launched with (``pytest --deck a b``), so
+    the initial tree mirrors ``pytest a b`` (rootdir is pytest's; collection
+    stays under the targets). They ride into the subprocess as-is, so pass
+    absolute paths (the plugin does) unless rootdir-relative is intended.
+    ``None`` or empty means no positional at all, the default for a bare
+    ``--deck``: pytest then applies ``testpaths`` or the whole rootdir.
     """
     rootdir = Path(rootdir).resolve()
-    default_targets = [str(Path(initial_target).resolve())] if initial_target else None
+    default_targets = list(initial_targets) if initial_targets else None
     manager = RunManager(rootdir)
 
     @asynccontextmanager
@@ -693,7 +694,7 @@ def serve(
     host="127.0.0.1",
     port=None,
     open_browser=False,
-    initial_target=None,
+    initial_targets=None,
     port_flag="--port",
 ):
     """Build the app and run uvicorn on the main thread (Ctrl-C exits cleanly).
@@ -704,14 +705,14 @@ def serve(
 
     No auto-open by default: a restart looks identical to a first launch, so
     auto-opening spawns a redundant tab; we print the URL instead and the
-    original tab self-heals over SSE reconnect. ``initial_target`` scopes the
-    initial collection to a subtree (see ``create_app``).
+    original tab self-heals over SSE reconnect. ``initial_targets`` scopes the
+    initial collection (see ``create_app``).
     """
     import uvicorn
 
     sock, bound_port = _bound_socket(host, port, port_flag)
     try:
-        app = create_app(rootdir, initial_target=initial_target)
+        app = create_app(rootdir, initial_targets=initial_targets)
         url = _display_url(host, bound_port)
         # flush=True: the server runs until Ctrl-C, so a block-buffered stdout
         # (a pipe, a log file, `tee`) would otherwise never show the URL.

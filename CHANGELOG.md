@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- **`--deck` is a plain flag, and the paths are pytest's.**
+  `pytest --deck pkg_a/tests pkg_b/tests` collects both packages, and files
+  and node IDs work too, exactly as they do for `pytest`. Before, `--deck`
+  took a single directory as its own argument and silently dropped any other
+  path on the command line. The project root is the one pytest determines for
+  the same arguments. The `--deck=PATH` spelling no longer parses; write
+  `pytest --deck PATH`.
+
 ## 0.2.0, 2026-11-04
 
 ### Added

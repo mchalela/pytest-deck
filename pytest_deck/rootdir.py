@@ -1,25 +1,17 @@
-"""Mirror pytest's own rootdir discovery for the ``--deck PATH`` case.
+"""Read the user's pytest ini through pytest's own config discovery.
 
-The deck has to root itself exactly where a bare ``pytest PATH`` would, so a
-launch that points at a *subdirectory* (``--deck examples/api``) still finds the
-project root by walking up to the config anchor (``pyproject.toml`` /
-``pytest.ini`` / ``tox.ini`` / ``setup.cfg`` / ``setup.py``), rather than pinning
-rootdir to the subdir. Getting this wrong is not cosmetic: the run subprocess
-pins ``cwd=rootdir`` (P12), so a too-deep rootdir makes coverage.py key source
-files above cwd as absolute paths, which the ``/api/coverage`` under-rootdir
-security gate then (correctly) rejects. Fixing rootdir at the source is the only
-safe fix; loosening the gate is not (cov.json keys are attacker-controllable).
+The two readers here (``read_ini_pythonpath`` and ``read_ini_addopts``) feed
+the deck's child argv, so they must see exactly the config pytest sees. Rather
+than reimplement the upward search for the config anchor (``pyproject.toml`` /
+``pytest.ini`` / ``tox.ini`` / ``setup.cfg`` / ``setup.py``) we call pytest's
+own ``determine_setup``, so the deck can never drift from pytest. Its signature
+differs across supported majors (pytest 8 has no ``override_ini`` and returns
+a 3-tuple; pytest 9 adds it and returns a 4-tuple), so we pass only the kwargs
+it declares and read the elements that are stable across both.
 
-For the bare ``--deck`` (no PATH) case the outer pytest has already run this same
-search from its invocation dir, so ``config.rootpath`` is reused as-is. This
-module is needed only to re-derive rootdir from a target other than the one the
-outer invocation used.
-
-We call pytest's own ``determine_setup`` rather than reimplement its algorithm,
-so the deck can never drift from pytest. Its signature differs across supported
-majors (pytest 8 has no ``override_ini`` and returns a 3-tuple; pytest 9 adds it
-and returns a 4-tuple), so we pass only the kwargs it declares and read the first
-element (the rootdir), the part of the contract that is stable across both.
+The rootdir itself is not derived here: the outer plugin reuses
+``config.rootpath``, which pytest already determined from the real positionals
+(P12), so ``pytest --deck a b`` roots exactly where ``pytest a b`` would.
 """
 
 import inspect
@@ -27,30 +19,6 @@ import shlex
 from pathlib import Path
 
 from _pytest.config.findpaths import determine_setup
-
-
-def discover_rootdir(target, invocation_dir):
-    """Return the rootdir pytest would pick for ``pytest <target>``.
-
-    ``target`` is the ``--deck PATH`` (absolute or relative to ``invocation_dir``);
-    ``invocation_dir`` is the real cwd pytest was launched from. Mirrors pytest by
-    delegating to its ``determine_setup`` with ``target`` as the sole positional
-    arg: the config-file upward search and the setup.py / common-ancestor
-    fallbacks are pytest's, not ours.
-    """
-    invocation_dir = Path(invocation_dir).resolve()
-    kwargs = {
-        "inifile": None,
-        "override_ini": [],
-        "args": [str(target)],
-        "rootdir_cmd_arg": None,
-        "invocation_dir": invocation_dir,
-    }
-    # Drop kwargs the installed pytest doesn't declare (pytest 8 vs 9 signature).
-    accepted = inspect.signature(determine_setup).parameters
-    kwargs = {k: v for k, v in kwargs.items() if k in accepted}
-    rootdir = determine_setup(**kwargs)[0]
-    return str(Path(rootdir).resolve())
 
 
 def _read_inicfg(rootdir):

@@ -30,8 +30,9 @@ pip install pytest-deck
 pytest-deck is a pytest plugin. Launch the dashboard with `--deck`:
 
 ```bash
-pytest --deck                 # dashboard for the current project (rootdir)
-pytest --deck path/to/tests   # dashboard for a specific path
+pytest --deck                           # dashboard for the current project (rootdir)
+pytest --deck path/to/tests             # dashboard for a specific path
+pytest --deck pkg_a/tests pkg_b/tests   # several paths, files, or node IDs, as for pytest
 ```
 
 Nothing runs in the terminal. The deck prints its URL

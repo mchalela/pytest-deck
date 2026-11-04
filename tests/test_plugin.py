@@ -43,7 +43,7 @@ def test_deck_option_is_registered(pytester, monkeypatch):
     monkeypatch.setenv("PYTEST_DECK_NO_LAUNCH", "1")
     # Hermetic force-load under autoload-disable (P13); see _deck_pargs.
     result = pytester.runpytest_subprocess(*_deck_pargs(), "--help")
-    result.stdout.fnmatch_lines(["*--deck=*"])
+    result.stdout.fnmatch_lines(["*--deck *"])
     result.stdout.fnmatch_lines(["*--deck-port=*"])
 
 
@@ -96,8 +96,8 @@ def test_launch_server_invoked_with_rootpath(pytester, monkeypatch):
     """
     calls = []
 
-    def fake_launch(config, rootdir, target=None):
-        calls.append((rootdir, target))
+    def fake_launch(config, rootdir, targets=None):
+        calls.append((rootdir, targets))
         return 0
 
     monkeypatch.setattr(plugin, "_launch_server", fake_launch)
@@ -107,32 +107,147 @@ def test_launch_server_invoked_with_rootpath(pytester, monkeypatch):
     result = pytester.runpytest_inprocess(*_deck_pargs(), "--deck")
     assert result.ret == 0
     assert len(calls) == 1
-    rootdir, target = calls[0]
-    # Bare ``--deck``: rootdir is the discovered path (non-empty), no subtree target.
+    rootdir, targets = calls[0]
+    # Bare ``--deck``: rootdir is the discovered path (non-empty), no targets.
     assert rootdir and rootdir != ""
-    assert target is None
+    assert targets is None
 
 
-def test_launch_server_honors_explicit_path(pytester, monkeypatch):
-    """``--deck PATH`` derives rootdir via pytest and keeps PATH as the target.
-
-    ``pytester.path`` has no config anchor, so pytest's rootdir for it is the
-    dir itself (common-ancestor fallback) — rootdir == PATH here, and PATH also
-    rides through as the initial collection target (mirrors ``pytest PATH``).
-    """
+def _launch_calls(monkeypatch):
+    """Monkeypatch ``_launch_server``; return the list of (rootdir, targets) calls."""
     calls = []
     monkeypatch.setattr(
         plugin,
         "_launch_server",
-        lambda config, rootdir, target=None: calls.append((rootdir, target)) or 0,
+        lambda config, rootdir, targets=None: calls.append((rootdir, targets)) or 0,
     )
+    return calls
+
+
+def test_launch_server_honors_explicit_path(pytester, monkeypatch):
+    """``pytest --deck PATH`` keeps PATH as the target, resolved absolute.
+
+    ``pytester.path`` has no config anchor, so pytest's rootdir for it is the
+    dir itself (common-ancestor fallback): rootdir == PATH here, and PATH also
+    rides through as the initial collection target (mirrors ``pytest PATH``).
+    """
+    calls = _launch_calls(monkeypatch)
     pytester.makepyfile(test_sample="def test_x(): assert True")
 
-    # An existing directory passes validation; tmp_path is the cwd here.
     # Hermetic force-load under autoload-disable (P13); see _deck_pargs.
     result = pytester.runpytest_inprocess(*_deck_pargs(), "--deck", str(pytester.path))
     assert result.ret == 0
-    assert calls == [(str(pytester.path), str(pytester.path))]
+    assert calls == [(str(pytester.path), [str(pytester.path)])]
+
+
+def test_launch_server_forwards_every_positional(pytester, monkeypatch):
+    """``pytest --deck a b`` forwards BOTH paths, in order, as absolute targets.
+
+    The regression this pins: ``--deck`` used to take a single PATH of its
+    own and silently drop any other positional. The flag's position must not
+    matter either (``pytest a b --deck`` is the same invocation).
+    """
+    calls = _launch_calls(monkeypatch)
+    for pkg in ("a", "b"):
+        d = pytester.mkdir(pkg)
+        (d / f"test_{pkg}.py").write_text("def test(): assert True\n")
+
+    result = pytester.runpytest_inprocess(*_deck_pargs(), "--deck", "a", "b")
+    assert result.ret == 0
+    result = pytester.runpytest_inprocess(*_deck_pargs(), "a", "b", "--deck")
+    assert result.ret == 0
+    expected = [str(pytester.path / "a"), str(pytester.path / "b")]
+    assert calls == [(str(pytester.path), expected)] * 2
+
+
+def test_launch_server_keeps_file_and_nodeid_targets(pytester, monkeypatch):
+    """Files and node IDs are positionals too; the ``::`` suffix survives."""
+    calls = _launch_calls(monkeypatch)
+    pytester.makepyfile(
+        test_sample="def test_x(): assert True\ndef test_y(): assert True"
+    )
+
+    result = pytester.runpytest_inprocess(
+        *_deck_pargs(), "--deck", "test_sample.py", "test_sample.py::test_y"
+    )
+    assert result.ret == 0
+    sample = str(pytester.path / "test_sample.py")
+    assert calls == [(str(pytester.path), [sample, f"{sample}::test_y"])]
+
+
+def test_rootdir_walks_up_from_positionals(pytester, monkeypatch):
+    """Rootdir parity: ``--deck pkg/tests`` roots where ``pytest pkg/tests`` would.
+
+    The deck reuses ``config.rootpath``, so the upward walk to the config
+    anchor is pytest's own; the target stays the subdir (rootdir != scope).
+    Getting this wrong pins the run subprocess's cwd too deep (P12), which
+    makes coverage key files above it as absolute paths the ``/api/coverage``
+    gate rejects.
+    """
+    calls = _launch_calls(monkeypatch)
+    pytester.makefile(".toml", pyproject="[tool.pytest.ini_options]\n")
+    sub = pytester.mkdir("pkg") / "tests"
+    sub.mkdir()
+    (sub / "test_a.py").write_text("def test(): assert True\n")
+
+    result = pytester.runpytest_inprocess(*_deck_pargs(), "--deck", "pkg/tests")
+    assert result.ret == 0
+    assert calls == [(str(pytester.path), [str(sub)])]
+
+
+def test_launched_from_subdir_matches_terminal_pytest(pytester, monkeypatch):
+    """From a subdir of rootdir, ``--deck`` scopes like ``pytest`` run there would.
+
+    pytest's invocation-dir default (``args_source != ARGS``, no ``testpaths``)
+    collects just the subdir, and the subprocess (``cwd=rootdir``) could not
+    re-apply that, so the plugin forwards it. A relative positional typed in
+    the subdir must resolve against the subdir too, not against rootdir.
+    """
+    calls = _launch_calls(monkeypatch)
+    pytester.makefile(".toml", pyproject="[tool.pytest.ini_options]\n")
+    pytester.makepyfile(test_top="def test(): assert True\n")
+    sub = pytester.mkdir("sub")
+    (sub / "test_a.py").write_text("def test(): assert True\n")
+    monkeypatch.chdir(sub)
+
+    result = pytester.runpytest_inprocess(*_deck_pargs(), "--deck")
+    assert result.ret == 0
+    result = pytester.runpytest_inprocess(*_deck_pargs(), "--deck", "test_a.py")
+    assert result.ret == 0
+    root = str(pytester.path)
+    assert calls == [(root, [str(sub)]), (root, [str(sub / "test_a.py")])]
+
+
+def test_deck_rejects_pyargs_and_dir_selection(pytester, monkeypatch):
+    """``--pyargs`` and ``dir::name`` fail up front like pytest would, exit 4."""
+    calls = _launch_calls(monkeypatch)
+    sub = pytester.mkdir("sub")
+    (sub / "test_a.py").write_text("def test(): assert True\n")
+
+    result = pytester.runpytest_inprocess(*_deck_pargs(), "--deck", "--pyargs", "sub")
+    assert result.ret == pytest.ExitCode.USAGE_ERROR
+    result.stderr.fnmatch_lines(["*ERROR*--deck does not support --pyargs*"])
+    result = pytester.runpytest_inprocess(*_deck_pargs(), "--deck", "sub::test")
+    assert result.ret == pytest.ExitCode.USAGE_ERROR
+    result.stderr.fnmatch_lines(["*ERROR*directory argument cannot contain ::*"])
+    assert calls == []
+
+
+def test_testpaths_are_not_forwarded_as_targets(pytester, monkeypatch):
+    """A bare ``--deck`` under a ``testpaths`` ini passes NO targets.
+
+    pytest fills ``config.args`` from ``testpaths`` itself, but those are not
+    the user's positionals: the deck hands the subprocess no positional at all
+    so it applies the same ini default (see the server's default-collect test).
+    """
+    calls = _launch_calls(monkeypatch)
+    pytester.makeini("[pytest]\ntestpaths = tests\n")
+    tests_dir = pytester.mkdir("tests")
+    (tests_dir / "test_in.py").write_text("def test(): assert True\n")
+
+    result = pytester.runpytest_inprocess(*_deck_pargs(), "--deck")
+    assert result.ret == 0
+    assert calls == [(str(pytester.path), None)]
 
 
 def test_deck_port_reaches_serve(pytester, monkeypatch):
@@ -190,7 +305,7 @@ def test_deck_port_without_deck_is_inert(pytester, monkeypatch):
     monkeypatch.setattr(
         plugin,
         "_launch_server",
-        lambda config, rootdir, target=None: called.append(rootdir) or 0,
+        lambda config, rootdir, targets=None: called.append(rootdir) or 0,
     )
     pytester.makepyfile(test_sample="def test_passes(): assert True")
 
@@ -200,17 +315,19 @@ def test_deck_port_without_deck_is_inert(pytester, monkeypatch):
 
 
 def test_deck_rejects_nonexistent_path(pytester, monkeypatch):
-    """``--deck /no/such/dir`` fails cleanly before launching anything.
+    """``pytest --deck /no/such/path`` fails cleanly before launching anything.
 
-    A bad path must be rejected up front (``pytest.UsageError`` → exit 4, a
-    clear ``ERROR:`` line, no traceback) rather than handed to the server to
-    fail opaquely later. The launcher must never be reached.
+    pytest's own "file or directory not found" check lives in the session the
+    deck short-circuits, so the plugin repeats it up front (``pytest.UsageError``
+    → exit 4, a clear ``ERROR:`` line, no traceback) rather than handing the
+    path to the server to fail opaquely later. The launcher must never be
+    reached.
     """
     called = []
     monkeypatch.setattr(
         plugin,
         "_launch_server",
-        lambda config, rootdir, target=None: called.append(rootdir) or 0,
+        lambda config, rootdir, targets=None: called.append(rootdir) or 0,
     )
     pytester.makepyfile(test_sample="def test_x(): assert True")
 
@@ -220,4 +337,4 @@ def test_deck_rejects_nonexistent_path(pytester, monkeypatch):
 
     assert result.ret == pytest.ExitCode.USAGE_ERROR  # 4
     assert called == []  # launcher never invoked
-    result.stderr.fnmatch_lines(["*ERROR*is not a directory*"])
+    result.stderr.fnmatch_lines(["*ERROR*file or directory not found*"])

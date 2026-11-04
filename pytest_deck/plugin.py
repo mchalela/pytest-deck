@@ -7,29 +7,29 @@ injected only into deck-spawned subprocesses via ``-p``.
 """
 
 import os
+from pathlib import Path
 
 import pytest
 
-from .rootdir import discover_rootdir
 from .server import serve
 
 
 def pytest_addoption(parser):
-    """Register ``--deck [PATH]``.
+    """Register ``--deck``, a plain flag.
 
-    nargs="?"+const/default distinguishes "--deck" (empty-string sentinel)
-    from "--deck PATH" from absent (None).
+    The collection targets are pytest's own positionals (``pytest --deck a b``),
+    never an argument of the flag itself, so the outer pytest parses, roots and
+    validates them exactly as a bare ``pytest a b`` would.
     """
     group = parser.getgroup("deck", "pytest-deck interactive dashboard")
     group.addoption(
         "--deck",
-        nargs="?",
-        const="",  # bare ``--deck``: the empty-string sentinel
-        default=None,  # ``--deck`` absent: None
-        metavar="PATH",
+        action="store_true",
+        default=False,
         dest="deck",
-        help="launch the pytest-deck dashboard against PATH (default: rootdir), "
-        "instead of running tests in this process",
+        help="launch the pytest-deck dashboard instead of running tests in this "
+        "process; the positional paths or node IDs (if any) scope the "
+        "initial collection, as they would for a plain pytest run",
     )
     # P2: registering the option is inert. The value only reaches the server
     # through the --deck branch, so --deck-port without --deck changes nothing.
@@ -50,46 +50,72 @@ def pytest_cmdline_main(config):
     P3: it is a firstresult hook, so returning an int stops pytest before the
     test loop (the int becomes the exit code). P2: returns None without
     ``--deck``.
+
+    The outer pytest already ran rootdir discovery from the real argument list
+    (``determine_setup`` with the positionals, or the invocation dir when there
+    are none), so ``config.rootpath`` is exactly the rootdir a bare ``pytest``
+    with the same arguments would report (P12). The positionals ride through
+    as the initial collection targets.
     """
-    deck = config.getoption("deck", default=None)
-    if deck is None:
+    if not config.getoption("deck", default=False):
         return None
+    return _launch_server(config, str(config.rootpath), _initial_targets(config))
 
-    if not deck:
-        # Bare ``--deck``: the outer pytest already ran rootdir discovery from its
-        # invocation dir, so reuse its answer (it walks up to the config anchor).
-        rootdir = str(config.rootpath)
-        target = None
-    else:
-        # ``--deck PATH``: validate up front, otherwise it fails opaquely later
-        # inside the subprocess. UsageError is pytest's clean path: an ERROR
-        # line and exit 4.
-        if not os.path.isdir(deck):
+
+def _initial_targets(config):
+    """Return the positionals as absolute targets, or None when there are none.
+
+    The tree must match what a terminal ``pytest`` collects from the same
+    place. pytest fills ``config.args`` three ways (``args_source``): the
+    user's own positionals ride through as targets; a ``testpaths`` default
+    is NOT forwarded, since the subprocess re-applies the same ini itself
+    with no positional at all; and the invocation-dir default is forwarded
+    only when that dir is below rootdir, because the subprocess runs with
+    ``cwd=rootdir`` and could not re-apply it (a bare ``pytest`` from a
+    subdir collects just that subdir).
+
+    Each target resolves against the invocation dir, keeping any ``::``
+    node-id suffix. A missing path, or a ``::`` selection on a directory, is
+    rejected up front with pytest's own wording: the session that would
+    normally report it never runs under ``--deck``, and a bad target would
+    otherwise give an empty or broken tree later. ``--pyargs`` is refused
+    because its module names are not paths and the flag is not forwarded.
+    """
+    source = config.args_source
+    invocation_dir = Path(config.invocation_params.dir)
+    if source is config.ArgsSource.TESTPATHS:
+        return None
+    if source is not config.ArgsSource.ARGS and invocation_dir == config.rootpath:
+        return None
+    if config.getoption("pyargs", default=False):
+        raise pytest.UsageError("--deck does not support --pyargs")
+    targets = []
+    for arg in config.args:
+        path_part, sep, node_part = arg.partition("::")
+        path = invocation_dir / path_part
+        if not path.exists():
+            raise pytest.UsageError(f"file or directory not found: {arg}")
+        if node_part and path.is_dir():
             raise pytest.UsageError(
-                f"--deck: {deck!r} is not a directory (path does not exist "
-                f"or is not a directory)"
+                f"directory argument cannot contain :: selection parts: {arg}"
             )
-        # Mirror pytest: rootdir walks up from PATH to the config anchor, while
-        # PATH itself stays the initial collection target (like ``pytest PATH``).
-        target = os.path.abspath(deck)
-        rootdir = discover_rootdir(target, config.invocation_params.dir)
-
-    return _launch_server(config, rootdir, target)
+        targets.append(str(path.resolve()) + sep + node_part)
+    return targets
 
 
-def _launch_server(config, rootdir, target=None):
+def _launch_server(config, rootdir, targets=None):
     """Launch the dashboard server; return an exit code.
 
     Factored out so tests can monkeypatch it (or set ``PYTEST_DECK_NO_LAUNCH``).
     """
     if os.environ.get("PYTEST_DECK_NO_LAUNCH"):
         # Test/CI guard: prove the option wired through without binding a socket.
-        suffix = f" (target {target})" if target else ""
+        suffix = f" (targets {' '.join(targets)})" if targets else ""
         print(f"pytest-deck: would launch dashboard for {rootdir}{suffix}")
         return pytest.ExitCode.OK
 
     # None lets serve() fall forward from 8765; an explicit port binds exactly
     # that or fails loudly.
     port = config.getoption("deck_port", default=None)
-    serve(rootdir, port=port, initial_target=target, port_flag="--deck-port")
+    serve(rootdir, port=port, initial_targets=targets, port_flag="--deck-port")
     return pytest.ExitCode.OK
