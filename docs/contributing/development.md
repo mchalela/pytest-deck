@@ -9,7 +9,12 @@ The project is developed against Python 3.13.
 ```console
 $ git clone https://github.com/mchalela/pytest-deck
 $ cd pytest-deck
+$ git switch develop
 ```
+
+`develop` is where changes land; `main` holds releases and only moves through
+a pull request from `develop`. Branch from `develop` and open your pull request
+against it.
 
 Create a virtual environment and install the package in editable mode with its
 test extra:
