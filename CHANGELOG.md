@@ -1,6 +1,13 @@
 # Changelog
 
-## Unreleased
+## 0.2.0, 2026-11-04
+
+### Added
+
+- **Screenshots and GIFs** in the README and the user guide, generated from
+  the `examples/` suite by a script in `docs/screenshots/`.
+- **Pinned tree toolbar.** The **select all**, **clear**, **expand**, and
+  **collapse** buttons stay in view while the tree scrolls.
 
 ### Changed
 
@@ -23,6 +30,7 @@
 - The page itself could scroll by a few pixels, showing a stray scrollbar at
   the window edge, because the pane grid's height was computed from a
   hardcoded header height. The app now fills the window as a flex column.
+- Leaf and group names at the same tree depth now line up.
 
 ## 0.1.1, 2026-09-04
 
