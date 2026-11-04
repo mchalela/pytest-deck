@@ -466,6 +466,7 @@
 
 <style>
   header {
+    flex: none;
     display: flex;
     align-items: center;
     gap: 16px;
@@ -519,10 +520,13 @@
      column widths are set inline from the `panes` state (paneLayout.js owns
      the clamps); the single row is minmax(0, 1fr) so the panes scroll inside
      the fixed-height layout instead of growing it. */
+  /* Takes whatever height the header leaves; min-height: 0 lets the panes
+     shrink to the window and scroll inside it instead of growing the page. */
   .layout {
     display: grid;
     grid-template-rows: minmax(0, 1fr);
-    height: calc(100vh - 53px);
+    flex: 1 1 auto;
+    min-height: 0;
   }
   .divider {
     cursor: col-resize;

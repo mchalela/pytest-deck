@@ -27,6 +27,7 @@
   } from "../lib/coverageView.svelte.js";
   import { fetchCoverageFile } from "../lib/api.js";
   import { ansiToHtml } from "../lib/ansi.js";
+  import { renderBlock } from "../lib/rules.js";
   import { headerAndSummary, summaryPieces } from "../lib/consoleTail.js";
   import CoverageSource from "./CoverageSource.svelte";
   import JsonTree from "./JsonTree.svelte";
@@ -247,8 +248,8 @@
           <span class="summsg">{@html ansiToHtml(p.rest)}</span>
         </div>
       {:else}
-        <!-- eslint-disable-next-line svelte/no-at-html-tags -- ansiToHtml escapes all text runs -->
-        <pre class="consoletext">{@html ansiToHtml(p.raw)}</pre>
+        <!-- eslint-disable-next-line svelte/no-at-html-tags -- renderBlock escapes all text runs via ansiToHtml -->
+        <pre class="consoletext">{@html renderBlock(p.raw)}</pre>
       {/if}
     {/each}
   </div>
@@ -388,6 +389,11 @@
     flex: none;
     text-align: right;
   }
+  /* pytest's text keeps its line shape, as in a terminal. Long lines
+     overflow this block and the detail pane scrolls sideways as a whole,
+     which puts the scrollbar at the bottom of the pane instead of under each
+     piece of text. The rules are the pane's width and travel with the text
+     when it scrolls, as everything does in a terminal. */
   .console {
     font-size: 12px;
     line-height: 1.45;
@@ -399,25 +405,23 @@
     padding: 0;
     margin: 0;
     font: inherit;
-    white-space: pre-wrap;
-    word-break: break-word;
+    white-space: pre;
   }
-  /* One short-summary entry: badge first, so it reads like the tree column. */
+  /* One short-summary entry: badge first, so it reads like the tree column.
+     Top-aligned: when the message folds onto more lines than the nodeid, its
+     first line still sits beside the nodeid's first line (and the badge). */
   .sumrow {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 8px;
     padding: 1px 0;
   }
-  .sumid {
+  .sumid,
+  .summsg {
     flex: none;
-    max-width: 60%;
-    overflow-wrap: anywhere;
+    white-space: nowrap;
   }
   .summsg {
-    flex: 1 1 auto;
-    min-width: 0;
-    overflow-wrap: anywhere;
     color: var(--muted);
   }
 </style>

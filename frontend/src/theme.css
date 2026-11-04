@@ -10,6 +10,7 @@
   --accent: #4ea1ff;
   --chip: #243044;
   --chip-on: #2d5a8a;
+  --scrollbar: #3b4756;
   --group: #c08be0;
   --indent: 16px;
 
@@ -42,6 +43,25 @@
 
 * {
   box-sizing: border-box;
+}
+
+/* Thin scrollbars in the theme's colours everywhere: both properties
+   inherit, so this covers the panes and any scrolling block inside them. */
+:root {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar) transparent;
+}
+
+/* The app fills the window as a column (header, then the pane grid) and the
+   panes do their own scrolling, so the page itself never overflows. */
+html,
+body,
+#app {
+  height: 100%;
+}
+#app {
+  display: flex;
+  flex-direction: column;
 }
 
 body {
@@ -78,4 +98,48 @@ button.mini {
 button:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+/* pytest's terminal fill lines ("===== test session starts =====", the
+   "_ _ _ _" between traceback frames) are rendered by lib/rules.js as these
+   spans inside a <pre>, so the styles are global rather than component-scoped.
+   A rule is a flex box: the line is drawn by ::before/::after around the label,
+   tinted like the label when pytest coloured it. */
+.rule {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0;
+  min-height: 1.2em;
+  --rule-line: var(--rule-color, var(--muted));
+}
+.rule::before,
+.rule::after {
+  content: "";
+  flex: 1 1 0;
+  border-top: 1px solid var(--rule-line);
+  opacity: 0.45;
+}
+/* The label stays on one line like the text around it; a label wider than
+   the pane (a long closing summary) just overflows into the sideways scroll. */
+.rule-label {
+  flex: none;
+  white-space: pre;
+  letter-spacing: 0.01em;
+}
+/* A bare separator (no label) is one unbroken line. */
+.rule-bare {
+  gap: 0;
+}
+.rule-bare::after {
+  display: none;
+}
+/* The "_ _ _" frame separator inside a traceback: quieter than a section. */
+.rule-frame {
+  margin: 6px 0;
+}
+.rule-frame::before,
+.rule-frame::after {
+  border-top-style: dashed;
+  opacity: 0.35;
 }

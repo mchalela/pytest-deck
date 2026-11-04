@@ -1,5 +1,29 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- **pytest's banners fit the pane.** Section lines such as
+  `===== test session starts =====` and the `_ _ _ _` separators between
+  traceback frames are padded to the terminal width, which made them fold
+  into rows of `=` in the Run info pane and the detail pane. They now render
+  as rules that fit the pane, keeping pytest's words and colors. The copy
+  button still copies the raw text.
+- **pytest's text scrolls sideways instead of folding.** Long lines in the
+  traceback and captured-output blocks, and in the Run info pane's header and
+  short test summary, keep their shape as in a terminal, with a horizontal
+  scrollbar when a line is wider than the pane. Each summary entry is one
+  line: badge, test, message.
+- **Themed scrollbars.** Every pane uses thin scrollbars in the deck's
+  colors instead of the browser's default.
+
+### Fixed
+
+- The page itself could scroll by a few pixels, showing a stray scrollbar at
+  the window edge, because the pane grid's height was computed from a
+  hardcoded header height. The app now fills the window as a flex column.
+
 ## 0.1.1, 2026-09-04
 
 ### Added

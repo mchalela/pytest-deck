@@ -3,7 +3,8 @@
   // right corner. The clipboard gets the plain text: stripAnsi, never the
   // HTML and never the escape codes.
   import { onDestroy } from "svelte";
-  import { ansiToHtml, stripAnsi } from "../lib/ansi.js";
+  import { stripAnsi } from "../lib/ansi.js";
+  import { renderBlock } from "../lib/rules.js";
 
   let { text } = $props();
   let raw = $derived(text ?? "");
@@ -58,10 +59,11 @@
 </script>
 
 <div class="copypre">
-  <!-- ansiToHtml HTML-escapes every text run (XSS guard) and is a no-op on
-       text with no ANSI escapes, so plain sections render identically. -->
+  <!-- renderBlock passes every text run through ansiToHtml, which
+       HTML-escapes it (XSS guard); the only markup it adds itself is the
+       rule spans for pytest's fill lines. Plain sections render identically. -->
   <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-  <pre>{@html ansiToHtml(raw)}</pre>
+  <pre>{@html renderBlock(raw)}</pre>
   <button
     class="mini copy"
     class:failed={label === "failed"}
@@ -74,10 +76,14 @@
   .copypre {
     position: relative;
   }
+  /* Lines keep their shape, as in a terminal: a line wider than the pane
+     scrolls sideways instead of folding. pytest's width-padded separators are
+     rendered as rules (lib/rules.js), so the scrollbar only appears for
+     genuinely long lines such as a wide assertion message. */
   pre {
     margin: 0;
-    white-space: pre-wrap;
-    word-break: break-word;
+    white-space: pre;
+    overflow-x: auto;
     font-size: 12px;
     background: var(--bg);
     border: 1px solid var(--line);
