@@ -245,9 +245,18 @@ def test_mock_collection_byte_identical_with_and_without(tmp_path):
 @pytest.fixture
 def asyncio_suite(tmp_path):
     """The benchmark class of collect divergence: unknown mark + unknown ini
-    under a user ``filterwarnings = error`` (honored, P15)."""
+    under a user ``filterwarnings = error`` (honored, P15).
+
+    The loop-scope key is what a real pytest-asyncio project sets today: left
+    unset, pytest-asyncio warns at configure time, and since pytest 9.2
+    (which filters warnings raised while plugins load) ``filterwarnings =
+    error`` turns that into an INTERNALERROR even with the plugin on.
+    """
     (tmp_path / "pytest.ini").write_text(
-        "[pytest]\nasyncio_mode = auto\nfilterwarnings = error\n"
+        "[pytest]\n"
+        "asyncio_mode = auto\n"
+        "asyncio_default_fixture_loop_scope = function\n"
+        "filterwarnings = error\n"
     )
     (tmp_path / "test_async.py").write_text(
         "import pytest\n"
