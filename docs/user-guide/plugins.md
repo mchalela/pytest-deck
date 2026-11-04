@@ -43,6 +43,14 @@ places:
 Benchmarks: 4 · fastest test_pack 12.4 µs · slowest test_scan 3.1 ms
 ```
 
+```{figure} ../_static/screenshots/bench.png
+:alt: The tree's mean-time column and a pinned test's benchmark stats table
+:figclass: screenshot
+:width: 100%
+
+The mean-time column, auto-scaled per test, and the stats table for the pinned test.
+```
+
 Expand the switch for three timing knobs:
 
 - **Disable timing (`--benchmark-disable`)**: the fixture calls your function

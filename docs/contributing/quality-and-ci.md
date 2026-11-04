@@ -69,6 +69,27 @@ $ sphinx-build -W --keep-going -b html docs docs/_build/html
 The `-W` flag turns any warning into a failure, so a broken cross-reference or an
 orphan page fails the build. A green build here matches what ReadTheDocs will do.
 
+## The screenshots
+
+The images in the README and the user guide come from one script. It starts a
+deck over the `examples/` suite, drives it in a headless browser, and writes
+the PNGs and GIFs to `docs/_static/screenshots/`:
+
+```console
+$ tox -e shots
+```
+
+The images are committed, so run this after a visible UI change and commit the
+result. CI never runs it. The GIFs need `ffmpeg` on your `PATH`, and the first
+run downloads a browser into Playwright's cache.
+
+For a quicker loop, call the script directly. Each picture is a short function
+in it, and a new page gets its picture by adding one:
+
+```console
+$ python docs/screenshots/capture.py --only hero --no-gif
+```
+
 ## What CI enforces
 
 On every push and pull request, CI:

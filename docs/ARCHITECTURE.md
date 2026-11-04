@@ -303,10 +303,17 @@ App.svelte                      (root: collect/run/cancel orchestration, 3-col l
 │   ├── DiffBadge.svelte        (leaf: added/changed marker)
 │   └── BenchBadge.svelte       (leaf: benchmark mean-time column)
 └── DetailPane.svelte           (pinned test: phases, traceback, attachments)
+    ├── CopyPre.svelte          (one traceback / captured-output block + copy button)
     └── RunConsole.svelte       (nothing pinned: console, Run info, plugin panels)
         ├── CoverageSource.svelte  (a clicked file: source + hit/miss gutter)
         └── JsonTree.svelte (recursive; `render = "json"` payloads)
 ```
+
+CopyPre and RunConsole render pytest's text through `lib/rules.js`: a line that
+is only terminal padding (the `=====` banners, the `_ _ _` frame separators)
+becomes a rule span carrying its label; every other line goes through
+`lib/ansi.js`, which escapes the text and maps SGR codes to spans. The raw text
+is untouched, and the copy button copies it.
 
 ### 5.2 The reactive stores
 

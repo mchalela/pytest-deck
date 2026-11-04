@@ -49,8 +49,6 @@ pane are reserved for the switches that ship with pytest-deck. See
 
 ## Docs and stability
 
-**No screenshots yet.** The documentation describes the UI in prose for now.
-
 **Pre-1.0.** The [public API](api/public-api.md) is small on purpose, and even
 it may change between releases. The UI may too.
 

@@ -8,8 +8,6 @@ polish. Directions for the releases ahead:
   work with zero setup.
 - **Richer panels** for the plugins the deck already knows, building on the
   coverage, benchmark, and attachments views.
-- **Screenshots and visual docs**, so the UI pages show the dashboard instead
-  of describing it.
 - **Beta feedback first.** Real-world use decides the priorities between here
   and 1.0.
 

@@ -11,10 +11,7 @@ Every collect, reload, and run is a fresh `python -m pytest` subprocess, never
 in-process. What you see in the browser is what your terminal would say, and a
 crashing or hanging test can't take the dashboard down with it.
 
-<!-- screenshot: HERO. Full dashboard mid-run. Tree on the left with
-     PASS/FAIL/SKIP statuses filling in and rollup counts on groups, marker
-     chips visible, a failed test pinned so the detail pane shows a traceback
-     in pytest's own colors. examples/ is a good subject. Shot or short gif. -->
+![The dashboard running the examples suite: statuses stream into the test tree, rollup counts fill in on each file, and a failed test is pinned with its traceback in pytest's own colors](https://raw.githubusercontent.com/mchalela/pytest-deck/main/docs/_static/screenshots/hero.gif)
 
 > **Beta.** Collect, select, run with live streaming, reload with diff, plugin
 > switches, coverage down to a source gutter, benchmark timings, and per-test
@@ -91,14 +88,9 @@ Your ini `addopts` aren't lost either. Each token either prefills a switch's
 config form, follows its plugin's switch automatically, or shows up as a
 clickable suggestion chip. Nothing is dropped silently.
 
-<!-- screenshot: FLAGSHIP. The coverage gutter. Detail pane showing a source
-     file with the hit/miss gutter coloring, the coverage panel with per-file
-     percentages and the run total also in frame. Shot or short gif (gif could
-     be: tick Coverage → Run → click a file in the panel → gutter appears). -->
+![Coverage: a source file open in the detail pane with a line-by-line hit and miss gutter](https://raw.githubusercontent.com/mchalela/pytest-deck/main/docs/_static/screenshots/coverage.png)
 
-<!-- screenshot: SUPPORTING. Benchmark timings. Tree with the right-aligned
-     mean-time column populated (mixed ns/µs/ms values from examples/bench),
-     one test pinned so the detail pane's stats table is visible. -->
+![Benchmarks: the tree's mean-time column in ns, µs and ms, with one test pinned to show its stats table](https://raw.githubusercontent.com/mchalela/pytest-deck/main/docs/_static/screenshots/bench.png)
 
 → [Plugins guide](https://pytest-deck.readthedocs.io/en/latest/user-guide/plugins.html) ·
 [Writing your own manifest](https://pytest-deck.readthedocs.io/en/latest/plugin-integration/writing-manifests.html)

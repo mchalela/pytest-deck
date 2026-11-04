@@ -56,6 +56,14 @@ its traceback (in pytest's own colors) alongside the captured output, with a
 The run is a real `python -m pytest` subprocess, so the outcome matches what
 you'd get running the same selection in your terminal.
 
+```{figure} ../_static/screenshots/hero.gif
+:alt: A run streaming results into the tree, ending with a traceback pinned
+:figclass: screenshot
+:width: 100%
+
+Results stream in as each test finishes; clicking a `FAIL` badge pins its traceback.
+```
+
 ## 5. Edit and re-collect
 
 Changed some tests? Click **↻ Collect**. pytest-deck re-collects and shows a

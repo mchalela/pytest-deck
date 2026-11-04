@@ -4,6 +4,14 @@ pytest-deck reads coverage from [pytest-cov](https://pytest-cov.readthedocs.io),
 its flagship plugin. Turn coverage on for a run and you get a total percentage, a
 per-file breakdown, and a line-by-line source view showing exactly what ran.
 
+```{figure} ../_static/screenshots/coverage.gif
+:alt: Ticking the Coverage switch, running, and opening a file's source gutter
+:figclass: screenshot
+:width: 100%
+
+Tick **Coverage**, run, and click a file in the panel to open its gutter.
+```
+
 ## Turning it on
 
 Coverage needs `pytest-cov` installed in the same environment:
@@ -54,10 +62,26 @@ the middle column. The tree is organized by your *test* files; coverage measures
 your *source* files. They're two different sets, so coverage gets its own panel
 rather than a column on the tree.
 
+```{figure} ../_static/screenshots/coverage-panel.png
+:alt: The Run info pane with the coverage total and the per-file list
+:figclass: screenshot
+:width: 100%
+
+The coverage section of the Run info pane: the total, then every measured file, worst-covered first.
+```
+
 ## The source gutter
 
 Click any file in the coverage list to open it in the right pane with a
 line-by-line gutter:
+
+```{figure} ../_static/screenshots/coverage.png
+:alt: A source file with executed lines marked green and a missed line marked red
+:figclass: screenshot
+:width: 100%
+
+`toy.py` with its gutter: green for lines that ran, red for the one that did not.
+```
 
 - **Green** lines ran during the test.
 - **Red** lines are statements that never ran.

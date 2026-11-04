@@ -15,6 +15,14 @@ $ pytest --deck
 Installing is **inert until you pass `--deck`**. Ordinary `pytest` runs are
 completely unaffected.
 
+```{figure} _static/screenshots/hero.png
+:alt: The dashboard after a run of the examples suite
+:figclass: screenshot
+:width: 100%
+
+The examples suite after a run: the tree with rollup counts on every file, and a failed test pinned with its traceback in pytest's own colors.
+```
+
 ## Why pytest-deck
 
 Its defining promise: **a deck run matches a real command-line pytest run.**

@@ -7,6 +7,14 @@ The dashboard has three columns: a **sidebar** for markers, filtering, and
 plugins; the **test tree** in the middle; and a **detail pane** on the right.
 Along the top is a header of run controls.
 
+```{figure} ../_static/screenshots/hero.png
+:alt: The three columns: sidebar, test tree, detail pane
+:figclass: screenshot
+:width: 100%
+
+Sidebar, test tree, and detail pane, with the header of run controls along the top.
+```
+
 ## The header
 
 - **▶ Run** runs your current selection (see [below](#run-and-watch)).
@@ -106,8 +114,7 @@ you'd get running the same selection in your terminal.
 ## The detail pane
 
 When no test is pinned, the right column shows the **Run info** pane: pytest's
-own session header and final summary, in its native colors. It reads like the
-terminal you already know:
+own session header and final summary, in its native colors:
 
 ```text
 ============================= test session starts ==============================
@@ -118,9 +125,14 @@ FAILED tests/test_login.py::test_bad_password - AssertionError
 ========================= 1 failed, 5 passed in 0.42s ==========================
 ```
 
-The `FAILED` and `ERROR` lines of the short summary carry the same clickable
-status badge as the tree, so you can jump straight from the summary to a
-failing test's detail.
+The `=====` lines are padding to the terminal's width, so the pane draws each
+one as a rule with its label, keeping pytest's words and colors. Everything
+else is the text as pytest printed it. Long lines keep their shape and the pane
+scrolls sideways, as a terminal would.
+
+Each `FAILED` and `ERROR` line of the short summary becomes a row: the same
+clickable status badge as the tree, then the test, then the message. Click a
+badge to jump straight to that test's detail.
 
 If a run ends without pytest's summary (you cancelled it, or the server went
 away), the pane shows the whole output instead.
@@ -131,8 +143,9 @@ Click any status badge to pin that test and see its detail:
 - **Captured output**, for phases that produced it.
 - A **warnings** section, if any were raised.
 
-Each block has a **copy** button in its corner. It puts the plain text on the
-clipboard, without the colors, ready to paste into an issue or a chat.
+Long lines scroll sideways inside their block instead of wrapping. Each block
+has a **copy** button in its corner. It puts the plain text on the clipboard,
+without the colors, ready to paste into an issue or a chat.
 
 Click **✕ deselect** in the pane header to go back to the Run info pane. Badges
 are clickable in every state: if a test hasn't run yet, was filtered out by `-k`

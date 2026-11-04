@@ -51,6 +51,8 @@ pytest_deck/        the Python package (plugin, server, runner, collector, ...)
 frontend/           the Svelte 5 + Vite dashboard source
 tests/              the plugin's own test suite
 docs/               this documentation (Sphinx + MyST)
+  screenshots/      the script that regenerates the docs images
+  _static/screenshots/  the images it produces (committed)
 ```
 
 The two halves are separate: the Python package is the plugin and server, and
