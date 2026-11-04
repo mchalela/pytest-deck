@@ -1,11 +1,16 @@
 # Keep the version boundaries from rotting silently. This project's pins were
 # once set from whatever the dev machine had and drifted stale with no diff to
 # trigger a second look; Dependabot watches every ecosystem the repo pins.
+#
+# Every update targets `develop`: main only moves through a reviewed pull
+# request from develop, so a dependency bump goes through the same gate as
+# any other change instead of landing on main on its own.
 version: 2
 updates:
   # Frontend toolchain (Vite, Svelte, eslint, prettier): the largest surface.
   - package-ecosystem: "npm"
     directory: "/frontend"
+    target-branch: "develop"
     schedule:
       interval: "weekly"
     groups:
@@ -15,11 +20,13 @@ updates:
   # Python runtime deps + extras in pyproject.toml.
   - package-ecosystem: "pip"
     directory: "/"
+    target-branch: "develop"
     schedule:
       interval: "weekly"
 
   # Pinned action versions in .github/workflows (setup-python, setup-node, ...).
   - package-ecosystem: "github-actions"
     directory: "/"
+    target-branch: "develop"
     schedule:
       interval: "weekly"

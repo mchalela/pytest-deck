@@ -92,19 +92,21 @@ $ python docs/screenshots/capture.py --only hero --no-gif
 
 ## What CI enforces
 
-On every push and pull request, CI:
+Work lands on the `develop` branch and reaches `main` through a pull request.
+On every push to either branch and on every pull request, CI:
 
 1. builds the frontend bundle once and hands it to the rest of the jobs,
 2. runs the full Python matrix (3.11 to 3.14, pytest 8 and 9), and
 3. runs the quality job: `style`, `docstyle`, `style-js`, `coverage`, and
    `audit`.
 
-A change is green when every one of those passes. Since they're all tox envs, you
-can run the exact same gates locally before you open a pull request.
+A change is green when every one of those passes, and `main` only accepts a
+pull request that is green. Since they're all tox envs, you can run the exact
+same gates locally before you open one.
 
 Dependency currency is watched by Dependabot (`.github/dependabot.yml`): weekly
-update PRs for the frontend packages, the Python dependencies, and the pinned
-GitHub Actions.
+update PRs against `develop` for the frontend packages, the Python
+dependencies, and the pinned GitHub Actions.
 
 ## Next steps
 

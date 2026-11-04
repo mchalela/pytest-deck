@@ -8,10 +8,14 @@ name: CI
 # lands in pytest_deck/static/ (vite outDir), which the package ships and the
 # server serves. tox's `isolated_build` then packages that freshly built static/
 # into the wheel each env installs.
+#
+# Branch model: work lands on `develop` and reaches `main` only through a pull
+# request, so every push to develop and every PR runs the full gate and main
+# stays releasable. `main` is protected to require these checks.
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
   workflow_dispatch:
 
