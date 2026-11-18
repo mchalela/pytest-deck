@@ -32,9 +32,10 @@ foldable tree. Leave the terminal running: it hosts the dashboard
 until you stop it with `Ctrl-C`.
 
 ```{tip}
-To scope the dashboard to part of your suite, pass a path:
-`pytest --deck path/to/tests`. The project root is found the same way pytest
-finds it, so the results match `pytest path/to/tests`.
+To scope the dashboard to part of your suite, pass paths as you would to
+`pytest`: `pytest --deck path/to/tests`, or several paths, files, or node IDs.
+The project root is found the same way pytest finds it, so the results match
+`pytest path/to/tests`.
 ```
 
 ## 3. Select what to run

@@ -129,10 +129,10 @@ def test_collect_with_targets_narrows(suite):
     run_async(body())
 
 
-def test_initial_target_scopes_default_collection(tmp_path):
-    # ``--deck PATH`` with a subdirectory PATH still roots at ``tmp_path``, but
+def test_initial_targets_scope_default_collection(tmp_path):
+    # ``pytest --deck sub`` with a subdirectory still roots at ``tmp_path``, but
     # it scopes the default (no ``targets``) collection to that subtree, just
-    # like ``pytest PATH`` would. Two files at different depths prove the
+    # like ``pytest sub`` would. Two files at different depths prove the
     # scoping bites.
     (tmp_path / "pyproject.toml").write_text("[tool.pytest.ini_options]\n")
     (tmp_path / "test_top.py").write_text("def test_top():\n    assert True\n")
@@ -141,7 +141,7 @@ def test_initial_target_scopes_default_collection(tmp_path):
     (sub / "test_sub.py").write_text("def test_sub():\n    assert True\n")
 
     async def body():
-        app = create_app(tmp_path, initial_target=str(sub))
+        app = create_app(tmp_path, initial_targets=[str(sub)])
         async with asgi_client(app) as client:
             # Default collection: only the subtree.
             r = await client.get("/api/collect")
@@ -155,7 +155,7 @@ def test_initial_target_scopes_default_collection(tmp_path):
 
 
 def test_bare_deck_default_collect_honors_testpaths(tmp_path):
-    # With a bare ``--deck`` (initial_target=None) the default collect passes no
+    # With a bare ``--deck`` (initial_targets=None) the default collect passes no
     # positional at all, so pytest applies ``testpaths`` and the deck collects
     # exactly what the user's terminal ``pytest`` collects (the dogfooding fix).
     # The ``extra/`` dir outside testpaths must not appear.
@@ -168,7 +168,7 @@ def test_bare_deck_default_collect_honors_testpaths(tmp_path):
     (extra / "test_out.py").write_text("def test_out():\n    assert True\n")
 
     async def body():
-        app = create_app(tmp_path)  # no initial_target = bare --deck
+        app = create_app(tmp_path)  # no initial_targets = bare --deck
         async with asgi_client(app) as client:
             r = await client.get("/api/collect")
             assert _leaf_nodeids(r.json()["tree"]) == ["tests/test_in.py::test_in"]
@@ -561,7 +561,7 @@ def test_serve_closes_socket_when_startup_fails_after_bind(
 ):
     # The pin: an exception between the bind and uvicorn (create_app here) must
     # not leak the listening socket; the port frees immediately.
-    def boom(rootdir, initial_target=None):
+    def boom(rootdir, initial_targets=None):
         raise RuntimeError("startup failed")
 
     monkeypatch.setattr("pytest_deck.server.create_app", boom)
