@@ -17,7 +17,7 @@ copyright = "2026, Martin Chalela"
 try:
     release = metadata.version("pytest-deck")
 except metadata.PackageNotFoundError:  # pragma: no cover - docs-only fallback
-    release = "0.2.0"
+    release = "0.3.0"
 version = ".".join(release.split(".")[:2])
 
 # -- General configuration ---------------------------------------------------
