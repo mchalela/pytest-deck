@@ -1,0 +1,145 @@
+name: Release
+
+# Pushing a tag `vX.Y.Z` publishes that version to PyPI and creates the GitHub
+# release. PyPI is reached through Trusted Publishing, so no token is stored.
+# When editing, keep it that way: actions pinned to commit SHAs, no caches in
+# the build, and no repository code in the jobs that can publish or write.
+
+on:
+  push:
+    tags: ["v*"]
+
+# No permissions by default. Each job asks for exactly what it needs.
+permissions: {}
+
+# Never cancel a release halfway through an upload.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # 1) Fail before anything is built if the tag is not releasable: it has to
+  #    point at a commit on main, match every version site, and have a dated
+  #    CHANGELOG section. That section is saved as the release notes.
+  guard:
+    name: Check the tag
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0              # all branches, for the main ancestry check
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - name: The tagged commit is on main
+        run: git merge-base --is-ancestor HEAD origin/main
+      - name: The tag matches the version sites and the CHANGELOG
+        run: python .github/scripts/release_guard.py "$GITHUB_REF_NAME" --notes release-notes.md
+      - name: Upload the release notes
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-notes
+          path: release-notes.md
+          if-no-files-found: error
+          retention-days: 1
+
+  # 2) The same gate as every push: frontend build, test matrix, quality envs,
+  #    on the tagged commit.
+  ci:
+    name: CI
+    needs: guard
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml
+
+  # 3) Build the files that will be published, and smoke-test the wheel. The
+  #    frontend is built first because the wheel ships its bundle.
+  build:
+    name: Build sdist and wheel
+    needs: guard
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          package-manager-cache: false   # no caches in a release build
+      - name: Build the frontend bundle
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - name: Build the sdist and the wheel
+        run: |
+          python -m pip install --upgrade pip build twine
+          python -m build
+          twine check --strict dist/*
+      - name: Smoke-test the wheel
+        run: |
+          # Installing by exact name also checks the wheel carries the tagged version.
+          python -m venv "$RUNNER_TEMP/smoke"
+          "$RUNNER_TEMP/smoke/bin/pip" install "dist/pytest_deck-${GITHUB_REF_NAME#v}-py3-none-any.whl"
+          # Leave the checkout so the installed wheel is what gets imported.
+          cd "$RUNNER_TEMP"
+          smoke/bin/python -c "from importlib.resources import files; assert files('pytest_deck').joinpath('static/index.html').is_file()"
+          smoke/bin/pytest --help | grep -e "--deck" > /dev/null
+          smoke/bin/pytest-deck --help > /dev/null
+      - name: Upload the built files
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+
+  # 4) Upload to PyPI. This is the only job that can mint the OIDC token, and
+  #    the `pypi` environment can require an approval before it starts.
+  publish:
+    name: Publish to PyPI
+    needs: [ci, build]
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/pytest-deck/
+    permissions:
+      id-token: write   # Trusted Publishing; nothing else
+    steps:
+      - name: Fetch the built files
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
+
+  # 5) Create the GitHub release, only after PyPI accepted the upload. Title is
+  #    the tag, and no wheel or sdist is attached.
+  github-release:
+    name: Create the GitHub release
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # create the release
+    steps:
+      - name: Fetch the release notes
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-notes
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release create "$GITHUB_REF_NAME"
+          --repo "$GITHUB_REPOSITORY"
+          --verify-tag
+          --title "$GITHUB_REF_NAME"
+          --notes-file release-notes.md

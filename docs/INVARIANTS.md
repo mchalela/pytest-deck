@@ -401,7 +401,8 @@ regress if broken · **[SPEC]** = external constraint (pytest/SSE/hatchling).
   same path") on the sdist→wheel path CI uses. This bit us; don't revert it.
 - **K2 [ARCH] The frontend MUST be built (`vite build`) before the wheel** — else
   the bundle is absent and the dashboard serves nothing. CI's frontend job does
-  this; a hand-built release must too.
+  this, and so does the release workflow's build job; a hand-built release must
+  too.
 - **K3 [SPEC] Dev proxy MUST disable buffering on `/api/events`** — else SSE only
   arrives at stream end.
 

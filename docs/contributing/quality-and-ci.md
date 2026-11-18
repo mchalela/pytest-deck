@@ -108,6 +108,31 @@ Dependency currency is watched by Dependabot (`.github/dependabot.yml`): weekly
 update PRs against `develop` for the frontend packages, the Python
 dependencies, and the pinned GitHub Actions.
 
+## Releases
+
+A release is cut by a maintainer pushing a tag `vX.Y.Z` on a commit that is
+already on `main`. The release workflow (`.github/workflows/release.yml`) does
+the rest:
+
+1. checks that the tag matches the version in every place it is written, and
+   that `CHANGELOG.md` has a dated section for it,
+2. runs the full CI gate on the tagged commit,
+3. builds the frontend, the sdist and the wheel, and smoke-tests the wheel,
+4. uploads both files to PyPI, and
+5. creates the GitHub release with the changelog section as its notes.
+
+No PyPI token is stored anywhere. The upload uses
+[Trusted Publishing](https://docs.pypi.org/trusted-publishers/): PyPI accepts a
+short-lived token that GitHub issues only to that workflow, in this repository.
+The workflow file opens with the rules that keep it that way; read them before
+changing it.
+
+To check a release before tagging it, run the same guard locally:
+
+```console
+$ python .github/scripts/release_guard.py v1.2.3
+```
+
 ## Next steps
 
 - [Development](development.md): set up your environment and build the frontend.
