@@ -1,10 +1,11 @@
 # pytest-deck
 
-**An interactive browser dashboard for pytest.**
+**Your pytest suite, live in the browser.**
 
-Collect your suite as a foldable **file → class → test** tree, pick what to run
-with checkboxes or clickable marker chips, hit **▶ Run**, and watch
-PASS / FAIL / ERROR / SKIP results stream in test by test. Tracebacks and 
+pytest-deck is a pytest plugin that serves your suite as an interactive
+dashboard. Collect it as a foldable **file → class → test** tree, pick what to
+run with checkboxes or clickable marker chips, hit **▶ Run**, and watch
+PASS / FAIL / ERROR / SKIP results stream in test by test. Tracebacks and
 captured output are one click away.
 
 ```console
@@ -25,7 +26,7 @@ The examples suite after a run: the tree with rollup counts on every file, and a
 
 ## Why pytest-deck
 
-Its defining promise: **a deck run matches a real command-line pytest run.**
+Its promise: **a deck run matches a real command-line pytest run.**
 Every collect, reload, and run happens in a fresh `python -m pytest` subprocess,
 never in-process. What you see in the browser is exactly what you'd get in the
 terminal, and a crashing or hanging test can't take the dashboard down with it.

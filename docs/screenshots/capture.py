@@ -236,6 +236,16 @@ class Deck:
         ).click()
         self.page.wait_for_selector(".covsrc .ln")
 
+    def show_attachments(self):
+        """Scroll the detail pane to its Attachments and wait for the images."""
+        heading = self.page.locator(".detailpane h3", has_text="Attachments")
+        heading.wait_for()
+        heading.evaluate("h => h.scrollIntoView({block: 'start'})")
+        self.page.wait_for_function(
+            "() => { const imgs = [...document.querySelectorAll('.attach-img')];"
+            " return imgs.length && imgs.every(i => i.complete && i.naturalWidth); }"
+        )
+
     def screenshot(self, path):
         self.page.screenshot(path=str(path))
         print(f"  wrote {path.relative_to(ROOT)}")
@@ -313,12 +323,35 @@ def bench(d, mark):
     mark("end")
 
 
+def mpl(d, mark):
+    clean_collect(d)
+    d.set_plugin("Matplotlib figures")
+    d.toolbar("clear")
+    d.toolbar("collapse")
+    d.set_group("mpl/test_figures.py", True)
+    d.set_expanded("mpl/test_figures.py")
+    d.reset_scroll()
+    d.pause(800)
+    mark("start")
+    d.run()
+    mark("ran")
+    d.pause(800)
+    # The one test whose baseline deliberately mismatches, so pytest-mpl
+    # writes all three images: baseline, result and diff.
+    d.open_test("::test_drifted_sine")
+    d.show_attachments()
+    d.reset_scroll()
+    d.pause(2500)
+    mark("end")
+
+
 # Stills come out of every shot; `gif` adds a recording. `panes` overrides the
 # sidebar / detail-pane fractions for one shot.
 SHOTS = {
     "hero": {"run": hero, "gif": True},
     "coverage": {"run": coverage, "gif": True},
     "bench": {"run": bench, "gif": False, "panes": {"left": 0.23, "right": 0.30}},
+    "mpl": {"run": mpl, "gif": False, "panes": {"left": 0.20, "right": 0.42}},
 }
 
 
