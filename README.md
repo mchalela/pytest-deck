@@ -116,6 +116,17 @@ first free port from `8765`, up to `8785`, announcing any fallback), and
 `--open` (open a browser tab on launch; off by default). Through pytest,
 `--deck-port` is the same as `--port`.
 
+## How it compares
+
+- **pytest-html** writes a static report after the run. pytest-deck is where
+  you run from: pick tests, start runs, watch results arrive live. Built-in
+  pytest-html support is coming in 0.4.0.
+- **IDE test explorers** (VS Code, PyCharm) are better at debugging and jumping
+  to source. pytest-deck works with any editor, and turns your plugins into
+  switches with their results shown in place.
+- **The command line** stays the reference: every deck run is a plain
+  `python -m pytest` subprocess.
+
 ## How it works
 
 Every collect and run is a fresh pytest subprocess. A small plugin injected
