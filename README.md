@@ -2,11 +2,14 @@
 
 [![CI](https://github.com/mchalela/pytest-deck/actions/workflows/ci.yml/badge.svg)](https://github.com/mchalela/pytest-deck/actions/workflows/ci.yml) [![Docs](https://readthedocs.org/projects/pytest-deck/badge/?version=stable)](https://pytest-deck.readthedocs.io/en/stable/) [![PyPI](https://img.shields.io/pypi/v/pytest-deck)](https://pypi.org/project/pytest-deck/)
 
-An interactive browser dashboard for pytest. Collect your suite as a foldable
-tree, pick what to run with checkboxes or marker chips, and watch results stream
-in test by test, with tracebacks and captured output one click away.
+**Your pytest suite, live in the browser.**
 
-Its defining promise: **a deck run matches a real command-line pytest run.**
+pytest-deck is a pytest plugin that serves your suite as an interactive
+dashboard. Collect it as a foldable tree, pick what to run with checkboxes or
+marker chips, and watch results stream in test by test, with tracebacks and
+captured output one click away.
+
+Its promise: **a deck run matches a real command-line pytest run.**
 Every collect, reload, and run is a fresh `python -m pytest` subprocess, never
 in-process. What you see in the browser is what your terminal would say, and a
 crashing or hanging test can't take the dashboard down with it.
@@ -91,7 +94,7 @@ clickable suggestion chip. Nothing is dropped silently.
 
 ![Coverage: a source file open in the detail pane with a line-by-line hit and miss gutter](https://raw.githubusercontent.com/mchalela/pytest-deck/main/docs/_static/screenshots/coverage.png)
 
-![Benchmarks: the tree's mean-time column in ns, µs and ms, with one test pinned to show its stats table](https://raw.githubusercontent.com/mchalela/pytest-deck/main/docs/_static/screenshots/bench.png)
+![Matplotlib figures: a failing pytest-mpl comparison pinned in the detail pane, with its result, baseline and diff images side by side](https://raw.githubusercontent.com/mchalela/pytest-deck/main/docs/_static/screenshots/mpl.png)
 
 → [Plugins guide](https://pytest-deck.readthedocs.io/en/latest/user-guide/plugins.html) ·
 [Writing your own manifest](https://pytest-deck.readthedocs.io/en/latest/plugin-integration/writing-manifests.html)
